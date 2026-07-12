@@ -1,0 +1,9 @@
+{
+  "name": "우리집 오늘의 미션",
+  "short_name": "오늘의 미션",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fffdf5",
+  "theme_color": "#fff7cc",
+  "icons": []
+}

@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#fff7cc" />
+  <title>우리집 오늘의 미션</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    :root{
+      --bg:#fffdf5; --card:#ffffff; --line:#dedbd0; --text:#222;
+      --muted:#777; --accent:#f6d95f; --accent2:#8fd3ff; --ok:#83d49a;
+      --danger:#ffb1b1; --shadow:0 8px 24px rgba(0,0,0,.07);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select{font:inherit}
+    .app{max-width:760px;margin:0 auto;min-height:100vh;padding-bottom:88px}
+    header{position:sticky;top:0;z-index:10;background:rgba(255,253,245,.94);backdrop-filter:blur(12px);padding:16px 16px 10px;border-bottom:1px solid var(--line)}
+    h1{font-size:22px;margin:0 0 10px}
+    .toprow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .pill{border:1px solid var(--line);background:white;border-radius:999px;padding:9px 14px}
+    .pill.active{background:var(--accent);border-color:#d6bc4c;font-weight:700}
+    main{padding:14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+    .hero{background:linear-gradient(135deg,#fff4a8,#fff);display:grid;gap:10px}
+    .hero-title{font-weight:800;font-size:21px}
+    .progress{height:14px;background:#eee;border-radius:999px;overflow:hidden}
+    .progress > div{height:100%;background:var(--ok);width:0;transition:.25s}
+    .muted{color:var(--muted);font-size:14px}
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .section-title h2{font-size:18px;margin:0}
+    .task{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #eee}
+    .task:first-of-type{border-top:0}
+    .check{width:28px;height:28px;border-radius:9px;border:2px solid #bbb;background:white;display:grid;place-items:center;font-weight:900}
+    .check.done{background:var(--ok);border-color:var(--ok)}
+    .task-name.done{text-decoration:line-through;color:#999}
+    .badge{font-size:12px;padding:5px 8px;border-radius:999px;background:#f1f1f1}
+    .empty{text-align:center;padding:28px 12px;color:var(--muted)}
+    nav{position:fixed;left:0;right:0;bottom:0;background:white;border-top:1px solid var(--line);display:flex;justify-content:center;z-index:20}
+    nav .inner{width:760px;display:grid;grid-template-columns:repeat(3,1fr)}
+    nav button{border:0;background:white;padding:12px 6px 14px;font-size:13px}
+    nav button.active{font-weight:800;background:#fff9db}
+    .week{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;overflow:auto}
+    .daycol{min-width:115px;background:white;border:1px solid var(--line);border-radius:14px;padding:10px}
+    .dayhead{font-weight:800;text-align:center;margin-bottom:8px}
+    .mini{font-size:13px;padding:7px 0;border-top:1px dashed #ddd}
+    .mini:first-of-type{border-top:0}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{border:1px solid var(--line);background:white;border-radius:12px;padding:10px 13px}
+    .btn.primary{background:var(--accent);font-weight:800}
+    .btn.danger{background:#fff0f0}
+    .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .formgrid .full{grid-column:1/-1}
+    label{font-size:13px;color:#555;display:block;margin-bottom:5px}
+    input,select{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;background:white}
+    .days{display:flex;gap:6px;flex-wrap:wrap}
+    .daybtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:white}
+    .daybtn.active{background:var(--accent2);font-weight:800}
+    .manager-item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px 0;border-top:1px solid #eee}
+    .manager-item:first-child{border-top:0}
+    .hidden{display:none!important}
+    .small{font-size:12px}
+    @media(max-width:560px){
+      .week{grid-template-columns:repeat(5,118px)}
+      .formgrid{grid-template-columns:1fr}
+      .formgrid .full{grid-column:auto}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🏡 우리집 오늘의 미션</h1>
+    <div class="toprow" id="childSwitch"></div>
+  </header>
+
+  <main>
+    <section id="todayView"></section>
+    <section id="weekView" class="hidden"></section>
+    <section id="manageView" class="hidden"></section>
+  </main>
+
+  <nav>
+    <div class="inner">
+      <button data-view="today" class="active">✅ 오늘</button>
+      <button data-view="week">📅 주간</button>
+      <button data-view="manage">👩 엄마 관리</button>
+    </div>
+  </nav>
+</div>
+
+<script>
+const DAYS = ["일","월","화","수","목","금","토"];
+const WEEKDAYS = [1,2,3,4,5];
+
+const defaultData = {
+  children: ["다연","윤하"],
+  selectedChild: "다연",
+  selectedDate: null,
+  tasks: [
+    {id:"d1", child:"다연", category:"준비", name:"양치하기", days:WEEKDAYS, reward:false},
+    {id:"d2", child:"다연", category:"준비", name:"세수하기", days:WEEKDAYS, reward:false},
+    {id:"d3", child:"다연", category:"준비", name:"로션 바르기", days:WEEKDAYS, reward:false},
+    {id:"d4", child:"다연", category:"준비", name:"선크림 바르기", days:WEEKDAYS, reward:false},
+    {id:"d5", child:"다연", category:"준비", name:"준비물(물통)", days:WEEKDAYS, reward:false},
+    {id:"d6", child:"다연", category:"아침", name:"영어책 2권", days:WEEKDAYS, reward:true},
+    {id:"d7", child:"다연", category:"공부", name:"뿌리깊은국어", days:WEEKDAYS, reward:true},
+    {id:"d8", child:"다연", category:"공부", name:"원리셈", days:WEEKDAYS, reward:true},
+    {id:"d9", child:"다연", category:"공부", name:"에이급 수학 2장", days:WEEKDAYS, reward:true},
+    {id:"d10", child:"다연", category:"공부", name:"First Reading", days:[1,2,3,4], reward:true},
+    {id:"d11", child:"다연", category:"학원", name:"피아노", days:[1,2,3,4,5], reward:false},
+    {id:"d12", child:"다연", category:"학원", name:"화상영어", days:[1,3,5], reward:false},
+    {id:"d13", child:"다연", category:"학원", name:"태권도", days:[1,2,3,4,5], reward:false},
+    {id:"d14", child:"다연", category:"학원", name:"수영", days:[4], reward:false},
+    {id:"d15", child:"다연", category:"자기 전", name:"가방 정리", days:WEEKDAYS, reward:false},
+    {id:"d16", child:"다연", category:"자기 전", name:"책상 정리", days:WEEKDAYS, reward:false},
+    {id:"d17", child:"다연", category:"자기 전", name:"책 읽기", days:WEEKDAYS, reward:false},
+    {id:"d18", child:"다연", category:"잠", name:"가방 챙기기", days:WEEKDAYS, reward:false},
+    {id:"d19", child:"다연", category:"잠", name:"양치하기", days:WEEKDAYS, reward:false},
+    {id:"d20", child:"다연", category:"잠", name:"10시에 자기", days:WEEKDAYS, reward:false},
+
+    {id:"y1", child:"윤하", category:"준비", name:"양치하기", days:WEEKDAYS, reward:false},
+    {id:"y2", child:"윤하", category:"준비", name:"세수하기", days:WEEKDAYS, reward:false},
+    {id:"y3", child:"윤하", category:"준비", name:"준비물 챙기기", days:WEEKDAYS, reward:false},
+    {id:"y4", child:"윤하", category:"자기 전", name:"책 읽기", days:WEEKDAYS, reward:false},
+    {id:"y5", child:"윤하", category:"잠", name:"양치하기", days:WEEKDAYS, reward:false},
+    {id:"y6", child:"윤하", category:"잠", name:"10시에 자기", days:WEEKDAYS, reward:false}
+  ],
+  completions: {}
+};
+
+let data = JSON.parse(localStorage.getItem("familyQuestData") || "null") || defaultData;
+let currentView = "today";
+
+function save(){ localStorage.setItem("familyQuestData", JSON.stringify(data)); }
+function ymd(date=new Date()){
+  const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,"0"), d=String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+function parseYmd(s){
+  if(!s) return new Date();
+  const [y,m,d]=s.split("-").map(Number);
+  return new Date(y,m-1,d);
+}
+function getSelectedDate(){
+  return data.selectedDate ? parseYmd(data.selectedDate) : new Date();
+}
+function changeDate(offset){
+  const d=getSelectedDate();
+  d.setDate(d.getDate()+offset);
+  data.selectedDate=ymd(d);
+  save(); render();
+}
+function goToday(){
+  data.selectedDate=ymd(new Date());
+  save(); render();
+}
+function pickDate(value){
+  if(!value) return;
+  data.selectedDate=value;
+  save(); render();
+}
+function mondayOf(date=new Date()){
+  const x=new Date(date); const day=x.getDay(); const diff=(day===0?-1:1-day);
+  x.setDate(x.getDate()+diff); x.setHours(0,0,0,0); return x;
+}
+function isDone(taskId,dateStr){ return !!data.completions[`${dateStr}|${taskId}`]; }
+function toggleDone(taskId,dateStr){
+  const k=`${dateStr}|${taskId}`;
+  data.completions[k]=!data.completions[k];
+  save(); render();
+}
+function tasksFor(child,date){
+  return data.tasks.filter(t=>t.child===child && t.days.includes(date.getDay()));
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+function renderChildSwitch(){
+  const el=document.getElementById("childSwitch");
+  el.innerHTML=data.children.map(c=>`<button class="pill ${c===data.selectedChild?'active':''}" onclick="selectChild('${esc(c)}')">${esc(c)}</button>`).join("");
+}
+function selectChild(c){data.selectedChild=c;save();render();}
+
+function renderToday(){
+  const root=document.getElementById("todayView");
+  const now=getSelectedDate(), dateStr=ymd(now), list=tasksFor(data.selectedChild,now);
+  const done=list.filter(t=>isDone(t.id,dateStr)).length;
+  const pct=list.length?Math.round(done/list.length*100):0;
+  const cats=[...new Set(list.map(t=>t.category))];
+
+  root.innerHTML=`
+    <div class="card hero">
+      <div class="hero-title">${esc(data.selectedChild)}의 미션</div>
+      <div class="toprow" style="justify-content:space-between">
+        <button class="btn" onclick="changeDate(-1)">◀ 전날</button>
+        <div style="text-align:center">
+          <b>${now.getMonth()+1}월 ${now.getDate()}일 (${DAYS[now.getDay()]})</b>
+          <div><input type="date" value="${dateStr}" onchange="pickDate(this.value)" style="margin-top:6px"></div>
+        </div>
+        <button class="btn" onclick="changeDate(1)">다음날 ▶</button>
+      </div>
+      <button class="btn" onclick="goToday()">오늘로 돌아가기</button>
+      <div class="progress"><div style="width:${pct}%"></div></div>
+      <div><b>${done} / ${list.length}</b> 완료 · ${pct}%</div>
+      <div class="muted">${pct===100 && list.length ? "🎉 오늘 미션 완료!" : "하나씩 체크해 보자!"}</div>
+    </div>
+    ${cats.map(cat=>{
+      const rows=list.filter(t=>t.category===cat).map(t=>{
+        const done=isDone(t.id,dateStr);
+        return `<div class="task" onclick="toggleDone('${t.id}','${dateStr}')">
+          <button class="check ${done?'done':''}" aria-label="완료 체크">${done?'✓':''}</button>
+          <div class="task-name ${done?'done':''}">${esc(t.name)}</div>
+          ${t.reward?'<span class="badge">용돈 조건</span>':''}
+        </div>`;
+      }).join("");
+      return `<div class="card"><div class="section-title"><h2>${esc(cat)}</h2></div>${rows}</div>`;
+    }).join("") || '<div class="card empty">이 날짜에 등록된 일정이 없어요 🌿</div>'}
+  `;
+}
+
+function renderWeek(){
+  const root=document.getElementById("weekView");
+  const mon=mondayOf();
+  const dates=[0,1,2,3,4].map(i=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
+  root.innerHTML=`
+    <div class="card">
+      <div class="section-title"><h2>${esc(data.selectedChild)}의 이번 주</h2></div>
+      <div class="week">
+        ${dates.map(d=>{
+          const list=tasksFor(data.selectedChild,d), ds=ymd(d);
+          const done=list.filter(t=>isDone(t.id,ds)).length;
+          return `<div class="daycol">
+            <div class="dayhead">${d.getMonth()+1}/${d.getDate()} (${DAYS[d.getDay()]})</div>
+            <div class="small muted">${done}/${list.length} 완료</div>
+            ${list.map(t=>`<div class="mini">${isDone(t.id,ds)?'✅':'⬜'} ${esc(t.name)}</div>`).join("")}
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+}
+
+function renderManage(){
+  const root=document.getElementById("manageView");
+  const list=data.tasks.filter(t=>t.child===data.selectedChild);
+  root.innerHTML=`
+    <div class="card">
+      <div class="section-title"><h2>새 반복 일정 추가</h2></div>
+      <div class="formgrid">
+        <div>
+          <label>분류</label>
+          <select id="fCat">
+            <option>준비</option><option>아침</option><option>공부</option><option>학원</option><option>자기 전</option><option>잠</option><option>기타</option>
+          </select>
+        </div>
+        <div>
+          <label>할 일</label>
+          <input id="fName" placeholder="예: 원리셈 2장" />
+        </div>
+        <div class="full">
+          <label>반복 요일</label>
+          <div class="days" id="dayPick">${[1,2,3,4,5,6,0].map(i=>`<button type="button" class="daybtn ${WEEKDAYS.includes(i)?'active':''}" data-day="${i}">${DAYS[i]}</button>`).join("")}</div>
+        </div>
+        <div class="full">
+          <label><input type="checkbox" id="fReward" style="width:auto"> 주간 용돈 지급 조건에 포함</label>
+        </div>
+        <div class="full"><button class="btn primary" onclick="addTask()">일정 추가</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>등록된 일정</h2><span class="muted">${list.length}개</span></div>
+      ${list.map(t=>`<div class="manager-item">
+        <div>
+          <b>${esc(t.name)}</b>
+          <div class="muted">${esc(t.category)} · ${t.days.map(d=>DAYS[d]).join(" ")} ${t.reward?'· 용돈 조건':''}</div>
+        </div>
+        <button class="btn danger" onclick="deleteTask('${t.id}')">삭제</button>
+      </div>`).join("") || '<div class="empty">등록된 일정이 없어요.</div>'}
+    </div>
+
+    <div class="card">
+      <div class="section-title"><h2>데이터 백업</h2></div>
+      <div class="toolbar">
+        <button class="btn" onclick="exportData()">내보내기</button>
+        <label class="btn">가져오기<input type="file" accept="application/json" onchange="importData(event)" style="display:none"></label>
+        <button class="btn danger" onclick="resetData()">초기화</button>
+      </div>
+      <p class="muted">현재 버전은 이 기기 안에만 저장돼요. 내보내기로 백업할 수 있어요.</p>
+    </div>`;
+
+  document.querySelectorAll(".daybtn").forEach(b=>b.onclick=()=>b.classList.toggle("active"));
+}
+
+function addTask(){
+  const name=document.getElementById("fName").value.trim();
+  if(!name){alert("할 일을 입력해 주세요.");return;}
+  const days=[...document.querySelectorAll(".daybtn.active")].map(b=>Number(b.dataset.day));
+  if(!days.length){alert("반복 요일을 하나 이상 선택해 주세요.");return;}
+  data.tasks.push({
+    id:"t"+Date.now(), child:data.selectedChild,
+    category:document.getElementById("fCat").value,
+    name, days, reward:document.getElementById("fReward").checked
+  });
+  save(); render();
+}
+function deleteTask(id){
+  if(!confirm("이 일정을 삭제할까요?")) return;
+  data.tasks=data.tasks.filter(t=>t.id!==id); save(); render();
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="family-quest-backup.json";a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{try{data=JSON.parse(r.result);save();render();alert("가져왔어요.");}catch{alert("파일을 읽을 수 없어요.");}};
+  r.readAsText(file);
+}
+function resetData(){
+  if(!confirm("모든 체크 기록과 일정을 초기화할까요?")) return;
+  data=JSON.parse(JSON.stringify(defaultData));save();render();
+}
+
+function render(){
+  renderChildSwitch();
+  document.getElementById("todayView").classList.toggle("hidden",currentView!=="today");
+  document.getElementById("weekView").classList.toggle("hidden",currentView!=="week");
+  document.getElementById("manageView").classList.toggle("hidden",currentView!=="manage");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===currentView));
+  if(currentView==="today")renderToday();
+  if(currentView==="week")renderWeek();
+  if(currentView==="manage")renderManage();
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{currentView=b.dataset.view;render();});
+if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
+render();
+</script>
+</body>
+</html>
