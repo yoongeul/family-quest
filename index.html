@@ -90,7 +90,19 @@
   </nav>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
+const SUPABASE_URL = "https://zuideuvsykcbwiweyzho.supabase.co/rest/v1/";
+const SUPABASE_KEY = "sb_publishable_djj2HLiCWAW3UBnnEUXb-A_KeKtrLjG";
+
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+// 여기 아래부터 기존 코드
+
 const DAYS = ["일","월","화","수","목","금","토"];
 const WEEKDAYS = [1,2,3,4,5];
 
@@ -145,7 +157,47 @@ const defaultData = {
 let data = JSON.parse(localStorage.getItem("familyQuestData") || "null") || defaultData;
 let currentView = "today";
 
-function save(){ localStorage.setItem("familyQuestData", JSON.stringify(data)); }
+async function save() {
+  localStorage.setItem("familyQuestData", JSON.stringify(data));
+
+  const { error } = await supabaseClient
+    .from("app_data")
+    .upsert({
+      id: "family",
+      content: data,
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) {
+  console.error("Supabase 저장 실패:", error);
+  alert(
+    "온라인 저장 실패\n\n" +
+    (error.message || JSON.stringify(error))
+  );
+}
+}
+
+async function loadFromSupabase() {
+  const { data: row, error } = await supabaseClient
+    .from("app_data")
+    .select("content")
+    .eq("id", "family")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Supabase 불러오기 실패:", error);
+    return;
+  }
+
+  if (row?.content) {
+    data = row.content;
+    localStorage.setItem("familyQuestData", JSON.stringify(data));
+  } else {
+    // Supabase가 비어 있으면 현재 기본 데이터를 최초 1회 저장
+    await save();
+  }
+}
+
 function ymd(date=new Date()){
   const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,"0"), d=String(date.getDate()).padStart(2,"0");
   return `${y}-${m}-${d}`;
@@ -347,8 +399,34 @@ function render(){
   if(currentView==="manage")renderManage();
 }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{currentView=b.dataset.view;render();});
-if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
-render();
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+
+async function startApp() {
+  const { data: testData, error: testError } = await supabaseClient
+    .from("app_data")
+    .select("*")
+    .limit(1);
+
+  if (testError) {
+    alert(
+      "Supabase 연결 실패\n\n" +
+      testError.message +
+      "\n\ncode: " +
+      (testError.code || "없음")
+    );
+    console.error(testError);
+    return;
+  }
+
+  alert("Supabase 연결 성공!");
+
+  await loadFromSupabase();
+  render();
+}
+
+startApp();
 </script>
 </body>
 </html>
