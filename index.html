@@ -102,100 +102,93 @@ const supabaseClient = supabase.createClient(
 );
 
 // 여기 아래부터 기존 코드
-
+// 새로 추가 2607161541
 const DAYS = ["일","월","화","수","목","금","토"];
 const WEEKDAYS = [1,2,3,4,5];
 
-const defaultData = {
-  children: ["다연","윤하"],
-  selectedChild: "다연",
-  selectedDate: null,
-  tasks: [
-    {id:"d1", child:"다연", category:"준비", name:"양치하기", days:WEEKDAYS, reward:false},
-    {id:"d2", child:"다연", category:"준비", name:"세수하기", days:WEEKDAYS, reward:false},
-    {id:"d3", child:"다연", category:"준비", name:"로션 바르기", days:WEEKDAYS, reward:false},
-    {id:"d4", child:"다연", category:"준비", name:"선크림 바르기", days:WEEKDAYS, reward:false},
-    {id:"d5", child:"다연", category:"준비", name:"준비물(물통)", days:WEEKDAYS, reward:false},
-    {id:"d6", child:"다연", category:"아침", name:"영어책 2권", days:WEEKDAYS, reward:true},
-    {id:"d7", child:"다연", category:"공부", name:"뿌리깊은국어 1일", days:WEEKDAYS, reward:true},
-    {id:"d8", child:"다연", category:"공부", name:"원리셈 1일", days:WEEKDAYS, reward:true},
-    {id:"d9", child:"다연", category:"공부", name:"에이급 수학 2장", days:WEEKDAYS, reward:true},
-    {id:"d10", child:"다연", category:"공부", name:"First Reading", days:[1,2,3,4], reward:true},
-    {id:"d11", child:"다연", category:"학원", name:"피아노", days:[1,2,3,4,5], reward:false},
-    {id:"d12", child:"다연", category:"학원", name:"화상영어", days:[1,3,5], reward:false},
-    {id:"d13", child:"다연", category:"학원", name:"태권도", days:[1,2,3,4,5], reward:false},
-    {id:"d14", child:"다연", category:"학원", name:"수영", days:[2,4], reward:false},
-    {id:"d15", child:"다연", category:"자기 전", name:"가방 정리", days:WEEKDAYS, reward:false},
-    {id:"d16", child:"다연", category:"자기 전", name:"책상 정리", days:WEEKDAYS, reward:false},
-    {id:"d17", child:"다연", category:"자기 전", name:"책 읽기", days:WEEKDAYS, reward:false},
-    {id:"d18", child:"다연", category:"잠", name:"가방 챙기기", days:WEEKDAYS, reward:false},
-    {id:"d19", child:"다연", category:"잠", name:"양치하기", days:WEEKDAYS, reward:false},
-    {id:"d20", child:"다연", category:"잠", name:"10시에 자기", days:WEEKDAYS, reward:false},
+const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const WEEKDAYS = [1, 2, 3, 4, 5];
 
-    {id:"y1", child:"윤하", category:"준비", name:"양치하기", days:WEEKDAYS, reward:false},
-    {id:"y2", child:"윤하", category:"준비", name:"세수하기", days:WEEKDAYS, reward:false},
-    {id:"y3", child:"윤하", category:"준비", name:"로션 바르기", days:WEEKDAYS, reward:false},
-    {id:"y4", child:"윤하", category:"준비", name:"선크림 바르기", days:WEEKDAYS, reward:false},
-    {id:"y5", child:"윤하", category:"준비", name:"준비물(물통)", days:WEEKDAYS, reward:false},
-    {id:"y6", child:"윤하", category:"아침", name:"영어책 2권", days:WEEKDAYS, reward:true},
-    {id:"y7", child:"윤하", category:"공부", name:"뿌리깊은국어 1일", days:WEEKDAYS, reward:true},
-    {id:"y8", child:"윤하", category:"공부", name:"원리셈 1일", days:WEEKDAYS, reward:true},
-    {id:"y9", child:"윤하", category:"공부", name:"알파블럭스", days:[1,2,3,4], reward:true},
-    {id:"y10", child:"윤하", category:"학원", name:"피아노", days:[1,2,3,4,5], reward:false},
-    {id:"y11", child:"윤하", category:"학원", name:"태권도", days:[1,2,3,4,5], reward:false},
-    {id:"y12", child:"윤하", category:"학원", name:"수영", days:[1,3], reward:false},
-    {id:"y13", child:"윤하", category:"자기 전", name:"가방 정리", days:WEEKDAYS, reward:false},
-    {id:"y14", child:"윤하", category:"자기 전", name:"책상 정리", days:WEEKDAYS, reward:false},
-    {id:"y15", child:"윤하", category:"자기 전", name:"책 읽기", days:WEEKDAYS, reward:false},
-    {id:"y16", child:"윤하", category:"잠", name:"가방 챙기기", days:WEEKDAYS, reward:false},
-    {id:"y17", child:"윤하", category:"잠", name:"양치하기", days:WEEKDAYS, reward:false},
-    {id:"y18", child:"윤하", category:"잠", name:"10시에 자기", days:WEEKDAYS, reward:false}
-  ],
+let currentView = "today";
+
+let data = {
+  familyId: null,
+  children: [],
+  selectedChildId: null,
+  selectedDate: null,
+  tasks: [],
   completions: {}
 };
 
-let data = JSON.parse(localStorage.getItem("familyQuestData") || "null") || defaultData;
-let currentView = "today";
-
-async function save() {
-  localStorage.setItem("familyQuestData", JSON.stringify(data));
-
-  const { error } = await supabaseClient
-    .from("app_data")
-    .upsert({
-      id: "family",
-      content: data,
-      updated_at: new Date().toISOString()
-    });
-
-  if (error) {
-  console.error("Supabase 저장 실패:", error);
-  alert(
-    "온라인 저장 실패\n\n" +
-    (error.message || JSON.stringify(error))
-  );
-}
-}
-
 async function loadFromSupabase() {
-  const { data: row, error } = await supabaseClient
-    .from("app_data")
-    .select("content")
-    .eq("id", "family")
+  // 1. 우리 가족 찾기
+  const { data: family, error: familyError } = await supabaseClient
+    .from("families")
+    .select("id, name")
+    .eq("name", "우리 가족")
     .maybeSingle();
 
-  if (error) {
-    console.error("Supabase 불러오기 실패:", error);
+  if (familyError) {
+    console.error("가족 불러오기 실패:", familyError);
+    alert("가족 정보를 불러오지 못했어요.");
     return;
   }
 
-  if (row?.content) {
-    data = row.content;
-    localStorage.setItem("familyQuestData", JSON.stringify(data));
-  } else {
-    // Supabase가 비어 있으면 현재 기본 데이터를 최초 1회 저장
-    await save();
+  if (!family) {
+    alert("families 테이블에 '우리 가족' 행이 없어요.");
+    return;
   }
+
+  data.familyId = family.id;
+
+  // 2. 아이들 불러오기
+  const { data: children, error: childrenError } = await supabaseClient
+    .from("children")
+    .select("id, name, color, avatar, sort_order")
+    .eq("family_id", data.familyId)
+    .order("sort_order", { ascending: true });
+
+  if (childrenError) {
+    console.error("아이 불러오기 실패:", childrenError);
+    alert("아이 정보를 불러오지 못했어요.");
+    return;
+  }
+
+  data.children = children || [];
+
+  if (!data.selectedChildId && data.children.length > 0) {
+    data.selectedChildId = data.children[0].id;
+  }
+
+  // 3. 할 일 불러오기
+  const { data: tasks, error: tasksError } = await supabaseClient
+    .from("tasks")
+    .select(`
+      id,
+      family_id,
+      child_id,
+      name,
+      category,
+      days,
+      reward_enabled,
+      reward_points,
+      is_active,
+      sort_order
+    `)
+    .eq("family_id", data.familyId)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (tasksError) {
+    console.error("할 일 불러오기 실패:", tasksError);
+    alert("할 일을 불러오지 못했어요.");
+    return;
+  }
+
+  data.tasks = (tasks || []).map(task => ({
+    ...task,
+    reward: task.reward_enabled
+  }));
 }
 
 function ymd(date=new Date()){
@@ -235,28 +228,53 @@ function toggleDone(taskId,dateStr){
   data.completions[k]=!data.completions[k];
   save(); render();
 }
-function tasksFor(child,date){
-  return data.tasks.filter(t=>t.child===child && t.days.includes(date.getDay()));
+
+function tasksFor(childId, date) {
+  return data.tasks.filter(task =>
+    task.child_id === childId &&
+    task.days.includes(date.getDay())
+  );
 }
+
+
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 
-function renderChildSwitch(){
-  const el=document.getElementById("childSwitch");
-  el.innerHTML=data.children.map(c=>`<button class="pill ${c===data.selectedChild?'active':''}" onclick="selectChild('${esc(c)}')">${esc(c)}</button>`).join("");
+function renderChildSwitch() {
+  const el = document.getElementById("childSwitch");
+
+  el.innerHTML = data.children.map(child => `
+    <button
+      class="pill ${child.id === data.selectedChildId ? "active" : ""}"
+      onclick="selectChild('${child.id}')"
+    >
+      ${esc(child.name)}
+    </button>
+  `).join("");
 }
-function selectChild(c){data.selectedChild=c;save();render();}
+
+function selectChild(childId) {
+  data.selectedChildId = childId;
+  render();
+}
+
+function getSelectedChild() {
+  return data.children.find(child => child.id === data.selectedChildId);
+}
+
 
 function renderToday(){
   const root=document.getElementById("todayView");
-  const now=getSelectedDate(), dateStr=ymd(now), list=tasksFor(data.selectedChild,now);
+  const now = getSelectedDate();
+  const dateStr = ymd(now);
+  const selectedChild = getSelectedChild();
+  const list = tasksFor(data.selectedChildId, now);
   const done=list.filter(t=>isDone(t.id,dateStr)).length;
   const pct=list.length?Math.round(done/list.length*100):0;
   const cats=[...new Set(list.map(t=>t.category))];
 
   root.innerHTML=`
     <div class="card hero">
-      <div class="hero-title">${esc(data.selectedChild)}의 미션</div>
-      <div class="toprow" style="justify-content:space-between">
+<div class="hero-title">${esc(selectedChild?.name || "")}의 미션</div>      <div class="toprow" style="justify-content:space-between">
         <button class="btn" onclick="changeDate(-1)">◀ 전날</button>
         <div style="text-align:center">
           <b>${now.getMonth()+1}월 ${now.getDate()}일 (${DAYS[now.getDay()]})</b>
@@ -281,7 +299,6 @@ function renderToday(){
       return `<div class="card"><div class="section-title"><h2>${esc(cat)}</h2></div>${rows}</div>`;
     }).join("") || '<div class="card empty">이 날짜에 등록된 일정이 없어요 🌿</div>'}
   `;
-}
 
 function renderWeek(){
   const root=document.getElementById("weekView");
@@ -289,10 +306,11 @@ function renderWeek(){
   const dates=[0,1,2,3,4].map(i=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
   root.innerHTML=`
     <div class="card">
-      <div class="section-title"><h2>${esc(data.selectedChild)}의 이번 주</h2></div>
+      <div class="section-title"><h2>${esc(selectedChild?.name || "")}의 이번 주</h2></div>
       <div class="week">
         ${dates.map(d=>{
-          const list=tasksFor(data.selectedChild,d), ds=ymd(d);
+          const list = tasksFor(data.selectedChildId, d);
+          const ds = ymd(d);
           const done=list.filter(t=>isDone(t.id,ds)).length;
           return `<div class="daycol">
             <div class="dayhead">${d.getMonth()+1}/${d.getDate()} (${DAYS[d.getDay()]})</div>
@@ -306,7 +324,8 @@ function renderWeek(){
 
 function renderManage(){
   const root=document.getElementById("manageView");
-  const list=data.tasks.filter(t=>t.child===data.selectedChild);
+  const selectedChild = getSelectedChild();
+  const list=data.tasks.filter(t=>t.child_id===data.selectedChildId);
   root.innerHTML=`
     <div class="card">
       <div class="section-title"><h2>새 반복 일정 추가</h2></div>
