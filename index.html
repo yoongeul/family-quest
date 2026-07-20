@@ -625,9 +625,71 @@ document.querySelectorAll("nav button").forEach(button => {
   };
 });
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js").catch(console.error);
+let refreshingForUpdate = false;
+
+function showUpdateStatus(message) {
+  const status = document.getElementById("syncStatus");
+  if (status) status.textContent = message;
 }
+
+async function registerAutoUpdate() {
+  if (!("serviceWorker" in navigator)) return;
+
+  try {
+    const registration = await navigator.serviceWorker.register("./sw.js", {
+      updateViaCache: "none"
+    });
+
+    // 앱을 열 때마다 GitHub Pages에 새 sw.js가 있는지 확인
+    await registration.update();
+
+    // 새 서비스워커가 이미 대기 중이라면 바로 적용
+    if (registration.waiting) {
+      showUpdateStatus("🔄 새 버전을 적용하는 중...");
+      registration.waiting.postMessage({ type: "SKIP_WAITING" });
+    }
+
+    registration.addEventListener("updatefound", () => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+
+      newWorker.addEventListener("statechange", () => {
+        if (
+          newWorker.state === "installed" &&
+          navigator.serviceWorker.controller
+        ) {
+          showUpdateStatus("🔄 새 버전을 적용하는 중...");
+          newWorker.postMessage({ type: "SKIP_WAITING" });
+        }
+      });
+    });
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshingForUpdate) return;
+      refreshingForUpdate = true;
+
+      // 주소의 ?ver=10 같은 값을 제거한 뒤 최신 화면으로 새로고침
+      const cleanUrl = location.pathname + location.hash;
+      history.replaceState(null, "", cleanUrl);
+      location.reload();
+    });
+
+    // 앱을 계속 켜 둔 경우에도 10분마다 업데이트 확인
+    setInterval(() => registration.update(), 10 * 60 * 1000);
+
+    // 홈 화면 앱을 다시 열었을 때 업데이트 확인
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        registration.update();
+      }
+    });
+  } catch (error) {
+    console.error("서비스워커 등록 실패:", error);
+  }
+}
+
+registerAutoUpdate();
+
 
 async function startApp() {
   loadUiState();
