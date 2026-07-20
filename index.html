@@ -84,17 +84,60 @@
 
     .note-content {
       flex: 1;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
       text-align: left;
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.5;
     }
-
     .note-actions {
       display: flex;
       gap: 6px;
       justify-self: end;
     }
+
+  .note-type {
+    flex-shrink: 0;
+    display: inline-block;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .note-type.memo {
+   background: #f1f1f1;
+  }
+
+  .note-type.notice {
+    background: #fff1a8;
+  }
+
+  .note-type-picker {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .note-type-picker label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+    width: auto;
+  }
+
+  .note-type-picker input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+  }
 
     #noteInput {
       padding: 12px;
@@ -510,34 +553,34 @@ async function renderTodayNotes(dateStr, childId) {
   root.innerHTML = `
     <div class="card note-card">
       <div class="section-title">
-        <h2>📝 메모</h2>
+        <h2>📣 오늘 알림</h2>
       </div>
 
       <div class="muted">
-        메모를 불러오는 중...
+        알림을 불러오는 중...
       </div>
     </div>
   `;
 
   const { data: notes, error } = await supabaseClient
     .from("notes")
-    .select("id, content, note_date, created_at")
+    .select("id, content, note_type, note_date, created_at")
     .eq("family_id", data.familyId)
     .eq("child_id", childId)
     .eq("note_date", dateStr)
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("메모 불러오기 실패:", error);
+    console.error("알림 불러오기 실패:", error);
 
     root.innerHTML = `
       <div class="card note-card">
         <div class="section-title">
-          <h2>📝 메모</h2>
+          <h2>📣 오늘 알림</h2>
         </div>
 
         <div class="empty">
-          메모를 불러오지 못했어요.
+          오늘 알림을 불러오지 못했어요.
         </div>
       </div>
     `;
@@ -548,7 +591,7 @@ async function renderTodayNotes(dateStr, childId) {
   root.innerHTML = `
     <div class="card note-card">
       <div class="section-title">
-        <h2>📝 메모</h2>
+        <h2>📣 오늘 알림</h2>
       </div>
 
       <div id="noteList">
@@ -556,7 +599,7 @@ async function renderTodayNotes(dateStr, childId) {
           notes.length
             ? notes.map(note => `
                 <div class="note-row">
-                  <div class="note-content">${esc(note.content)}</div>
+                <div class="note-content"><span class="note-type ${note.note_type === "notice" ? "notice" : "memo"}">${note.note_type === "notice" ? "📢 공지" : "📝 메모"}</span><span>${esc(note.content)}</span></div>
 
                   <div class="note-actions">
                     <button
@@ -577,17 +620,28 @@ async function renderTodayNotes(dateStr, childId) {
               `).join("")
             : `
               <div class="empty">
-                등록된 메모가 없어요.
+                등록된 알림이 없어요.
               </div>
             `
         }
       </div>
 
       <div id="noteEditor" style="display:none; margin-top:12px;">
+        <div class="note-type-picker">
+          <label>
+            <input type="radio" name="noteType" value="memo" checked>
+            📝 메모
+          </label>
+
+          <label>
+            <input type="radio" name="noteType" value="notice">
+            📢 공지
+          </label>
+        </div>
         <textarea
           id="noteInput"
           rows="3"
-          placeholder="메모를 입력하세요"
+          placeholder="알림을 입력하세요"
           style="width:100%; resize:vertical;"
         ></textarea>
 
@@ -614,7 +668,7 @@ async function renderTodayNotes(dateStr, childId) {
         style="margin-top:12px;"
         onclick="openNoteEditor()"
       >
-        + 메모 추가
+        + 오늘 알림 추가
       </button>
     </div>
   `;
@@ -691,6 +745,8 @@ async function saveNote() {
 
   const dateStr = ymd(getSelectedDate());
   const childId = data.selectedChildId;
+  const noteType =
+    document.querySelector('input[name="noteType"]:checked')?.value || "memo";
 
   if (!childId) {
     alert("아이를 먼저 선택해 주세요.");
@@ -704,6 +760,7 @@ async function saveNote() {
       .from("notes")
       .update({
         content,
+        note_type: noteType,
         updated_at: new Date().toISOString()
       })
       .eq("id", editingNoteId)
@@ -717,7 +774,8 @@ async function saveNote() {
         family_id: data.familyId,
         child_id: childId,
         note_date: dateStr,
-        content
+        content,
+        note_type: noteType
       });
 
     error = result.error;
