@@ -175,7 +175,7 @@ async function loadFromSupabase() {
 
     supabaseClient
       .from("progress")
-      .select("id, family_id, child_id, task_id, date, completed")
+      .select("id, family_id, child_id, task_id, progress_date, completed")
       .eq("family_id", data.familyId)
       .eq("completed", true)
   ]);
@@ -193,7 +193,7 @@ async function loadFromSupabase() {
 
   data.completions = {};
   for (const row of progressResult.data || []) {
-    data.completions[`${row.date}|${row.task_id}`] = true;
+    data.completions[`${row.progress_date}|${row.task_id}`] = true;
   }
 
   const selectedStillExists = data.children.some(c => c.id === data.selectedChildId);
@@ -278,7 +278,7 @@ async function toggleDone(taskId, dateStr) {
           family_id: data.familyId,
           child_id: task.child_id,
           task_id: task.id,
-          date: dateStr,
+          progress_date: dateStr,
           completed: true
         });
       if (error) throw error;
@@ -289,7 +289,7 @@ async function toggleDone(taskId, dateStr) {
         .eq("family_id", data.familyId)
         .eq("child_id", task.child_id)
         .eq("task_id", task.id)
-        .eq("date", dateStr);
+        .eq("progress_date", dateStr);
       if (error) throw error;
     }
 
