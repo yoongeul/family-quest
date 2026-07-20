@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#fff7cc" />
-  <title>우리집 오늘의 미션</title>
+  <title> 🔥 오늘의 미션 🔥 </title>
   <link rel="manifest" href="manifest.webmanifest" />
   <style>
     :root{
@@ -68,6 +68,44 @@
       .week{grid-template-columns:repeat(5,118px)}
       .formgrid{grid-template-columns:1fr}
       .formgrid .full{grid-column:auto}
+    }
+    .note-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .note-row:last-child {
+      border-bottom: 0;
+    }
+
+    .note-content {
+      flex: 1;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    .note-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn.small {
+      padding: 5px 8px;
+      font-size: 13px;
+    }
+
+    #noteInput {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font: inherit;
+      background: white;
     }
   </style>
 </head>
@@ -413,31 +451,317 @@ function renderToday() {
       <div class="muted">${pct === 100 && list.length ? "🎉 오늘 미션 완료!" : "하나씩 체크해 보자!"}</div>
     </div>
 
+  <div id="todayNotes"></div>
+
     ${categories.map(category => {
-      const rows = list
-        .filter(task => task.category === category)
-        .map(task => {
-          const done = isDone(task.id, dateStr);
-          return `
-            <div class="task">
-              <button
-                class="check ${done ? "done" : ""}"
-                onclick="toggleDone('${task.id}','${dateStr}')"
-                aria-label="완료 체크"
-                ${isSaving ? "disabled" : ""}
-              >${done ? "✓" : ""}</button>
-              <div class="task-name ${done ? "done" : ""}">${esc(task.name)}</div>
-              ${task.reward ? '<span class="badge">용돈 조건</span>' : ''}
-            </div>`;
-        }).join("");
+  const rows = list
+    .filter(task => task.category === category)
+    .map(task => {
+      const done = isDone(task.id, dateStr);
+
+      return `
+        <div class="task">
+          <button
+            class="check ${done ? "done" : ""}"
+            onclick="toggleDone('${task.id}','${dateStr}')"
+            aria-label="완료 체크"
+            ${isSaving ? "disabled" : ""}
+          >${done ? "✓" : ""}</button>
+
+          <div class="task-name ${done ? "done" : ""}">
+            ${esc(task.name)}
+          </div>
+
+          ${task.reward ? '<span class="badge">용돈 조건</span>' : ''}
+        </div>
+      `;
+    })
+    .join("");
 
       return `
         <div class="card">
-          <div class="section-title"><h2>${esc(category)}</h2></div>
+          <div class="section-title">
+            <h2>${esc(category)}</h2>
+          </div>
+
           ${rows}
-        </div>`;
-    }).join("") || '<div class="card empty">이 날짜에 등록된 일정이 없어요 🌿</div>'}
+        </div>
+      `;
+    }).join("") || `
+     <div class="card empty">
+       이 날짜에 등록된 일정이 없어요 🌿
+     </div>
+  `}
   `;
+
+  renderTodayNotes(dateStr, data.selectedChildId);
+}
+
+async function renderTodayNotes(dateStr, childId) {
+  const root = document.getElementById("todayNotes");
+
+  if (!root) return;
+
+  if (!childId) {
+    root.innerHTML = `
+      <div class="card empty">
+        아이를 먼저 선택해 주세요.
+      </div>
+    `;
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="card">
+      <div class="section-title">
+        <h2>📝 메모</h2>
+      </div>
+
+      <div class="muted">
+        메모를 불러오는 중...
+      </div>
+    </div>
+  `;
+
+  const { data: notes, error } = await supabaseClient
+    .from("notes")
+    .select("id, content, note_date, created_at")
+    .eq("family_id", data.familyId)
+    .eq("child_id", childId)
+    .eq("note_date", dateStr)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("메모 불러오기 실패:", error);
+
+    root.innerHTML = `
+      <div class="card">
+        <div class="section-title">
+          <h2>📝 메모</h2>
+        </div>
+
+        <div class="empty">
+          메모를 불러오지 못했어요.
+        </div>
+      </div>
+    `;
+
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="card">
+      <div class="section-title">
+        <h2>📝 메모</h2>
+      </div>
+
+      <div id="noteList">
+        ${
+          notes.length
+            ? notes.map(note => `
+                <div class="note-row">
+                  <div class="note-content">
+                    ${esc(note.content)}
+                  </div>
+
+                  <div class="note-actions">
+                    <button
+                      class="btn small"
+                      onclick="startEditNote('${note.id}', '${encodeURIComponent(note.content)}')"
+                    >
+                      ✏️
+                    </button>
+
+                    <button
+                      class="btn small"
+                      onclick="deleteNote('${note.id}')"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              `).join("")
+            : `
+              <div class="empty">
+                등록된 메모가 없어요.
+              </div>
+            `
+        }
+      </div>
+
+      <div id="noteEditor" style="display:none; margin-top:12px;">
+        <textarea
+          id="noteInput"
+          rows="3"
+          placeholder="메모를 입력하세요"
+          style="width:100%; resize:vertical;"
+        ></textarea>
+
+        <div class="toprow" style="justify-content:flex-end; margin-top:8px;">
+          <button
+            class="btn"
+            onclick="cancelNoteEdit()"
+          >
+            취소
+          </button>
+
+          <button
+            class="btn"
+            onclick="saveNote()"
+          >
+            저장
+          </button>
+        </div>
+      </div>
+
+      <button
+        id="addNoteButton"
+        class="btn"
+        style="margin-top:12px;"
+        onclick="openNoteEditor()"
+      >
+        + 메모 추가
+      </button>
+    </div>
+  `;
+}
+
+let editingNoteId = null;
+
+function openNoteEditor() {
+  editingNoteId = null;
+
+  const editor = document.getElementById("noteEditor");
+  const input = document.getElementById("noteInput");
+  const button = document.getElementById("addNoteButton");
+
+  if (!editor || !input) return;
+
+  input.value = "";
+  editor.style.display = "block";
+
+  if (button) {
+    button.style.display = "none";
+  }
+
+  input.focus();
+}
+
+function startEditNote(noteId, encodedContent) {
+  editingNoteId = noteId;
+
+  const editor = document.getElementById("noteEditor");
+  const input = document.getElementById("noteInput");
+  const button = document.getElementById("addNoteButton");
+
+  if (!editor || !input) return;
+
+  input.value = decodeURIComponent(encodedContent);
+  editor.style.display = "block";
+
+  if (button) {
+    button.style.display = "none";
+  }
+
+  input.focus();
+}
+
+function cancelNoteEdit() {
+  editingNoteId = null;
+
+  const editor = document.getElementById("noteEditor");
+  const input = document.getElementById("noteInput");
+  const button = document.getElementById("addNoteButton");
+
+  if (input) {
+    input.value = "";
+  }
+
+  if (editor) {
+    editor.style.display = "none";
+  }
+
+  if (button) {
+    button.style.display = "inline-block";
+  }
+}
+
+async function saveNote() {
+  const input = document.getElementById("noteInput");
+  const content = input?.value.trim();
+
+  if (!content) {
+    alert("메모 내용을 입력해 주세요.");
+    return;
+  }
+
+  const dateStr = ymd(getSelectedDate());
+  const childId = data.selectedChildId;
+
+  if (!childId) {
+    alert("아이를 먼저 선택해 주세요.");
+    return;
+  }
+
+  let error;
+
+  if (editingNoteId) {
+    const result = await supabaseClient
+      .from("notes")
+      .update({
+        content,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", editingNoteId)
+      .eq("family_id", data.familyId);
+
+    error = result.error;
+  } else {
+    const result = await supabaseClient
+      .from("notes")
+      .insert({
+        family_id: data.familyId,
+        child_id: childId,
+        note_date: dateStr,
+        content
+      });
+
+    error = result.error;
+  }
+
+  if (error) {
+  console.error(error);
+  alert(error.message);
+  return;
+  }
+
+  editingNoteId = null;
+  await renderTodayNotes(dateStr, childId);
+}
+
+async function deleteNote(noteId) {
+  const ok = confirm("이 메모를 삭제할까요?");
+
+  if (!ok) return;
+
+  const { error } = await supabaseClient
+    .from("notes")
+    .delete()
+    .eq("id", noteId)
+    .eq("family_id", data.familyId);
+
+  if (error) {
+    console.error("메모 삭제 실패:", error);
+    alert("메모 삭제에 실패했어요.");
+    return;
+  }
+
+  const dateStr = ymd(getSelectedDate());
+
+  await renderTodayNotes(
+    dateStr,
+    data.selectedChildId
+  );
 }
 
 function renderWeek() {
