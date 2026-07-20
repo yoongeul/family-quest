@@ -15,6 +15,8 @@
     *{box-sizing:border-box}
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--text)}
     button,input,select{font:inherit}
+    button{cursor:pointer}
+    button:disabled{cursor:not-allowed;opacity:.55}
     .app{max-width:760px;margin:0 auto;min-height:100vh;padding-bottom:88px}
     header{position:sticky;top:0;z-index:10;background:rgba(255,253,245,.94);backdrop-filter:blur(12px);padding:16px 16px 10px;border-bottom:1px solid var(--line)}
     h1{font-size:22px;margin:0 0 10px}
@@ -32,11 +34,12 @@
     .section-title h2{font-size:18px;margin:0}
     .task{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #eee}
     .task:first-of-type{border-top:0}
-    .check{width:28px;height:28px;border-radius:9px;border:2px solid #bbb;background:white;display:grid;place-items:center;font-weight:900}
+    .check{width:28px;height:28px;border-radius:9px;border:2px solid #bbb;background:white;display:grid;place-items:center;font-weight:900;padding:0}
     .check.done{background:var(--ok);border-color:var(--ok)}
     .task-name.done{text-decoration:line-through;color:#999}
     .badge{font-size:12px;padding:5px 8px;border-radius:999px;background:#f1f1f1}
     .empty{text-align:center;padding:28px 12px;color:var(--muted)}
+    .status{margin-top:8px;font-size:13px;color:var(--muted)}
     nav{position:fixed;left:0;right:0;bottom:0;background:white;border-top:1px solid var(--line);display:flex;justify-content:center;z-index:20}
     nav .inner{width:760px;display:grid;grid-template-columns:repeat(3,1fr)}
     nav button{border:0;background:white;padding:12px 6px 14px;font-size:13px}
@@ -73,6 +76,7 @@
   <header>
     <h1>🏡 우리집 오늘의 미션</h1>
     <div class="toprow" id="childSwitch"></div>
+    <div id="syncStatus" class="status">불러오는 중...</div>
   </header>
 
   <main>
@@ -91,7 +95,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 const SUPABASE_URL = "https://zuideuvsykcbwiweyzho.supabase.co";
 const SUPABASE_KEY = "sb_publishable_djj2HLiCWAW3UBnnEUXb-A_KeKtrLjG";
@@ -101,15 +104,12 @@ const supabaseClient = supabase.createClient(
   SUPABASE_KEY
 );
 
-// 여기 아래부터 기존 코드
-// 새로 추가 2607161541
-const DAYS = ["일","월","화","수","목","금","토"];
-const WEEKDAYS = [1,2,3,4,5];
-
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const WEEKDAYS = [1, 2, 3, 4, 5];
+const LOCAL_KEY = "familyQuestUiStateV2";
 
 let currentView = "today";
+let isSaving = false;
 
 let data = {
   familyId: null,
@@ -120,113 +120,189 @@ let data = {
   completions: {}
 };
 
+function setStatus(message) {
+  document.getElementById("syncStatus").textContent = message;
+}
+
+function saveUiState() {
+  localStorage.setItem(LOCAL_KEY, JSON.stringify({
+    selectedChildId: data.selectedChildId,
+    selectedDate: data.selectedDate,
+    currentView
+  }));
+}
+
+function loadUiState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
+    data.selectedChildId = saved.selectedChildId || null;
+    data.selectedDate = saved.selectedDate || ymd(new Date());
+    currentView = ["today", "week", "manage"].includes(saved.currentView)
+      ? saved.currentView
+      : "today";
+  } catch {
+    data.selectedDate = ymd(new Date());
+  }
+}
+
 async function loadFromSupabase() {
-  // 1. 우리 가족 찾기
+  setStatus("가족 정보를 불러오는 중...");
+
   const { data: family, error: familyError } = await supabaseClient
     .from("families")
     .select("id, name")
     .eq("name", "우리 가족")
     .maybeSingle();
 
-  if (familyError) {
-    console.error("가족 불러오기 실패:", familyError);
-    alert("가족 정보를 불러오지 못했어요.");
-    return;
-  }
-
-  if (!family) {
-    alert("families 테이블에 '우리 가족' 행이 없어요.");
-    return;
-  }
+  if (familyError) throw familyError;
+  if (!family) throw new Error("families 테이블에 '우리 가족' 행이 없어요.");
 
   data.familyId = family.id;
 
-  // 2. 아이들 불러오기
-  const { data: children, error: childrenError } = await supabaseClient
-    .from("children")
-    .select("id, name, color, avatar, sort_order")
-    .eq("family_id", data.familyId)
-    .order("sort_order", { ascending: true });
+  const [childrenResult, tasksResult, progressResult] = await Promise.all([
+    supabaseClient
+      .from("children")
+      .select("id, name, color, avatar, sort_order")
+      .eq("family_id", data.familyId)
+      .order("sort_order", { ascending: true }),
 
-  if (childrenError) {
-    console.error("아이 불러오기 실패:", childrenError);
-    alert("아이 정보를 불러오지 못했어요.");
-    return;
-  }
+    supabaseClient
+      .from("tasks")
+      .select("id, family_id, child_id, name, category, days, reward_enabled, reward_points, is_active, sort_order")
+      .eq("family_id", data.familyId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
 
-  data.children = children || [];
+    supabaseClient
+      .from("progress")
+      .select("id, family_id, child_id, task_id, date, completed")
+      .eq("family_id", data.familyId)
+      .eq("completed", true)
+  ]);
 
-  if (!data.selectedChildId && data.children.length > 0) {
-    data.selectedChildId = data.children[0].id;
-  }
+  if (childrenResult.error) throw childrenResult.error;
+  if (tasksResult.error) throw tasksResult.error;
+  if (progressResult.error) throw progressResult.error;
 
-  // 3. 할 일 불러오기
-  const { data: tasks, error: tasksError } = await supabaseClient
-    .from("tasks")
-    .select(`
-      id,
-      family_id,
-      child_id,
-      name,
-      category,
-      days,
-      reward_enabled,
-      reward_points,
-      is_active,
-      sort_order
-    `)
-    .eq("family_id", data.familyId)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-
-  if (tasksError) {
-    console.error("할 일 불러오기 실패:", tasksError);
-    alert("할 일을 불러오지 못했어요.");
-    return;
-  }
-
-  data.tasks = (tasks || []).map(task => ({
+  data.children = childrenResult.data || [];
+  data.tasks = (tasksResult.data || []).map(task => ({
     ...task,
-    reward: task.reward_enabled
+    days: Array.isArray(task.days) ? task.days.map(Number) : [],
+    reward: !!task.reward_enabled
   }));
+
+  data.completions = {};
+  for (const row of progressResult.data || []) {
+    data.completions[`${row.date}|${row.task_id}`] = true;
+  }
+
+  const selectedStillExists = data.children.some(c => c.id === data.selectedChildId);
+  if (!selectedStillExists) {
+    data.selectedChildId = data.children[0]?.id || null;
+  }
+
+  saveUiState();
+  setStatus("☁️ Supabase와 동기화됨");
 }
 
-function ymd(date=new Date()){
-  const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,"0"), d=String(date.getDate()).padStart(2,"0");
+function ymd(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
-function parseYmd(s){
-  if(!s) return new Date();
-  const [y,m,d]=s.split("-").map(Number);
-  return new Date(y,m-1,d);
+
+function parseYmd(value) {
+  if (!value) return new Date();
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
-function getSelectedDate(){
+
+function getSelectedDate() {
   return data.selectedDate ? parseYmd(data.selectedDate) : new Date();
 }
-function changeDate(offset){
-  const d=getSelectedDate();
-  d.setDate(d.getDate()+offset);
-  data.selectedDate=ymd(d);
-  save(); render();
+
+function changeDate(offset) {
+  const d = getSelectedDate();
+  d.setDate(d.getDate() + offset);
+  data.selectedDate = ymd(d);
+  saveUiState();
+  render();
 }
-function goToday(){
-  data.selectedDate=ymd(new Date());
-  save(); render();
+
+function goToday() {
+  data.selectedDate = ymd(new Date());
+  saveUiState();
+  render();
 }
-function pickDate(value){
-  if(!value) return;
-  data.selectedDate=value;
-  save(); render();
+
+function pickDate(value) {
+  if (!value) return;
+  data.selectedDate = value;
+  saveUiState();
+  render();
 }
-function mondayOf(date=new Date()){
-  const x=new Date(date); const day=x.getDay(); const diff=(day===0?-1:1-day);
-  x.setDate(x.getDate()+diff); x.setHours(0,0,0,0); return x;
+
+function mondayOf(date = new Date()) {
+  const x = new Date(date);
+  const day = x.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  x.setDate(x.getDate() + diff);
+  x.setHours(0, 0, 0, 0);
+  return x;
 }
-function isDone(taskId,dateStr){ return !!data.completions[`${dateStr}|${taskId}`]; }
-function toggleDone(taskId,dateStr){
-  const k=`${dateStr}|${taskId}`;
-  data.completions[k]=!data.completions[k];
-  save(); render();
+
+function isDone(taskId, dateStr) {
+  return !!data.completions[`${dateStr}|${taskId}`];
+}
+
+async function toggleDone(taskId, dateStr) {
+  if (isSaving) return;
+
+  const task = data.tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  const key = `${dateStr}|${taskId}`;
+  const nextValue = !data.completions[key];
+
+  data.completions[key] = nextValue;
+  isSaving = true;
+  setStatus("저장 중...");
+  render();
+
+  try {
+    if (nextValue) {
+      const { error } = await supabaseClient
+        .from("progress")
+        .insert({
+          family_id: data.familyId,
+          child_id: task.child_id,
+          task_id: task.id,
+          date: dateStr,
+          completed: true
+        });
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseClient
+        .from("progress")
+        .delete()
+        .eq("family_id", data.familyId)
+        .eq("child_id", task.child_id)
+        .eq("task_id", task.id)
+        .eq("date", dateStr);
+      if (error) throw error;
+    }
+
+    setStatus("☁️ 저장 완료");
+  } catch (error) {
+    console.error("체크 저장 실패:", error);
+    data.completions[key] = !nextValue;
+    setStatus("⚠️ 저장 실패");
+    alert("체크 상태를 저장하지 못했어요.\n\n" + error.message);
+  } finally {
+    isSaving = false;
+    render();
+  }
 }
 
 function tasksFor(childId, date) {
@@ -236,24 +312,29 @@ function tasksFor(childId, date) {
   );
 }
 
-
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[char]));
+}
 
 function renderChildSwitch() {
   const el = document.getElementById("childSwitch");
-
   el.innerHTML = data.children.map(child => `
     <button
       class="pill ${child.id === data.selectedChildId ? "active" : ""}"
       onclick="selectChild('${child.id}')"
-    >
-      ${esc(child.name)}
-    </button>
+    >${esc(child.name)}</button>
   `).join("");
 }
 
 function selectChild(childId) {
   data.selectedChildId = childId;
+  saveUiState();
   render();
 }
 
@@ -261,20 +342,20 @@ function getSelectedChild() {
   return data.children.find(child => child.id === data.selectedChildId);
 }
 
-
-function renderToday(){
-  const root=document.getElementById("todayView");
+function renderToday() {
+  const root = document.getElementById("todayView");
   const now = getSelectedDate();
   const dateStr = ymd(now);
   const selectedChild = getSelectedChild();
   const list = tasksFor(data.selectedChildId, now);
-  const done=list.filter(t=>isDone(t.id,dateStr)).length;
-  const pct=list.length?Math.round(done/list.length*100):0;
-  const cats=[...new Set(list.map(t=>t.category))];
+  const doneCount = list.filter(t => isDone(t.id, dateStr)).length;
+  const pct = list.length ? Math.round(doneCount / list.length * 100) : 0;
+  const categories = [...new Set(list.map(t => t.category))];
 
-  root.innerHTML=`
+  root.innerHTML = `
     <div class="card hero">
-<div class="hero-title">${esc(selectedChild?.name || "")}의 미션</div>      <div class="toprow" style="justify-content:space-between">
+      <div class="hero-title">${esc(selectedChild?.name || "")}의 미션</div>
+      <div class="toprow" style="justify-content:space-between">
         <button class="btn" onclick="changeDate(-1)">◀ 전날</button>
         <div style="text-align:center">
           <b>${now.getMonth()+1}월 ${now.getDate()}일 (${DAYS[now.getDay()]})</b>
@@ -284,56 +365,84 @@ function renderToday(){
       </div>
       <button class="btn" onclick="goToday()">오늘로 돌아가기</button>
       <div class="progress"><div style="width:${pct}%"></div></div>
-      <div><b>${done} / ${list.length}</b> 완료 · ${pct}%</div>
-      <div class="muted">${pct===100 && list.length ? "🎉 오늘 미션 완료!" : "하나씩 체크해 보자!"}</div>
+      <div><b>${doneCount} / ${list.length}</b> 완료 · ${pct}%</div>
+      <div class="muted">${pct === 100 && list.length ? "🎉 오늘 미션 완료!" : "하나씩 체크해 보자!"}</div>
     </div>
-    ${cats.map(cat=>{
-      const rows=list.filter(t=>t.category===cat).map(t=>{
-        const done=isDone(t.id,dateStr);
-        return `<div class="task" onclick="toggleDone('${t.id}','${dateStr}')">
-          <button class="check ${done?'done':''}" aria-label="완료 체크">${done?'✓':''}</button>
-          <div class="task-name ${done?'done':''}">${esc(t.name)}</div>
-          ${t.reward?'<span class="badge">용돈 조건</span>':''}
+
+    ${categories.map(category => {
+      const rows = list
+        .filter(task => task.category === category)
+        .map(task => {
+          const done = isDone(task.id, dateStr);
+          return `
+            <div class="task">
+              <button
+                class="check ${done ? "done" : ""}"
+                onclick="toggleDone('${task.id}','${dateStr}')"
+                aria-label="완료 체크"
+                ${isSaving ? "disabled" : ""}
+              >${done ? "✓" : ""}</button>
+              <div class="task-name ${done ? "done" : ""}">${esc(task.name)}</div>
+              ${task.reward ? '<span class="badge">용돈 조건</span>' : ''}
+            </div>`;
+        }).join("");
+
+      return `
+        <div class="card">
+          <div class="section-title"><h2>${esc(category)}</h2></div>
+          ${rows}
         </div>`;
-      }).join("");
-      return `<div class="card"><div class="section-title"><h2>${esc(cat)}</h2></div>${rows}</div>`;
     }).join("") || '<div class="card empty">이 날짜에 등록된 일정이 없어요 🌿</div>'}
   `;
+}
 
-function renderWeek(){
-  const root=document.getElementById("weekView");
-  const mon=mondayOf();
-  const dates=[0,1,2,3,4].map(i=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
-  root.innerHTML=`
+function renderWeek() {
+  const root = document.getElementById("weekView");
+  const selectedChild = getSelectedChild();
+  const mon = mondayOf(getSelectedDate());
+  const dates = [0,1,2,3,4].map(i => {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    return d;
+  });
+
+  root.innerHTML = `
     <div class="card">
-      <div class="section-title"><h2>${esc(selectedChild?.name || "")}의 이번 주</h2></div>
+      <div class="section-title"><h2>${esc(selectedChild?.name || "")}의 주간 미션</h2></div>
       <div class="week">
-        ${dates.map(d=>{
+        ${dates.map(d => {
           const list = tasksFor(data.selectedChildId, d);
           const ds = ymd(d);
-          const done=list.filter(t=>isDone(t.id,ds)).length;
-          return `<div class="daycol">
-            <div class="dayhead">${d.getMonth()+1}/${d.getDate()} (${DAYS[d.getDay()]})</div>
-            <div class="small muted">${done}/${list.length} 완료</div>
-            ${list.map(t=>`<div class="mini">${isDone(t.id,ds)?'✅':'⬜'} ${esc(t.name)}</div>`).join("")}
-          </div>`;
+          const doneCount = list.filter(t => isDone(t.id, ds)).length;
+          return `
+            <div class="daycol">
+              <div class="dayhead">${d.getMonth()+1}/${d.getDate()} (${DAYS[d.getDay()]})</div>
+              <div class="small muted">${doneCount}/${list.length} 완료</div>
+              ${list.map(t => `<div class="mini">${isDone(t.id, ds) ? "✅" : "⬜"} ${esc(t.name)}</div>`).join("")}
+            </div>`;
         }).join("")}
       </div>
     </div>`;
 }
 
-function renderManage(){
-  const root=document.getElementById("manageView");
-  const selectedChild = getSelectedChild();
-  const list=data.tasks.filter(t=>t.child_id===data.selectedChildId);
-  root.innerHTML=`
+function renderManage() {
+  const root = document.getElementById("manageView");
+  const list = data.tasks.filter(t => t.child_id === data.selectedChildId);
+
+  root.innerHTML = `
     <div class="card">
       <div class="section-title"><h2>새 반복 일정 추가</h2></div>
       <div class="formgrid">
         <div>
           <label>분류</label>
           <select id="fCat">
-            <option>준비</option><option>아침</option><option>공부</option><option>학원</option><option>자기 전</option><option>잠</option><option>기타</option>
+            <option>준비</option>
+            <option>아침</option>
+            <option>공부</option>
+            <option>학원</option>
+            <option>자기 전</option>
+            <option>잠</option>
+            <option>기타</option>
           </select>
         </div>
         <div>
@@ -342,107 +451,195 @@ function renderManage(){
         </div>
         <div class="full">
           <label>반복 요일</label>
-          <div class="days" id="dayPick">${[1,2,3,4,5,6,0].map(i=>`<button type="button" class="daybtn ${WEEKDAYS.includes(i)?'active':''}" data-day="${i}">${DAYS[i]}</button>`).join("")}</div>
+          <div class="days" id="dayPick">
+            ${[1,2,3,4,5,6,0].map(i => `
+              <button
+                type="button"
+                class="daybtn ${WEEKDAYS.includes(i) ? "active" : ""}"
+                data-day="${i}"
+              >${DAYS[i]}</button>
+            `).join("")}
+          </div>
         </div>
         <div class="full">
           <label><input type="checkbox" id="fReward" style="width:auto"> 주간 용돈 지급 조건에 포함</label>
         </div>
-        <div class="full"><button class="btn primary" onclick="addTask()">일정 추가</button></div>
+        <div class="full">
+          <button class="btn primary" onclick="addTask()">일정 추가</button>
+        </div>
       </div>
     </div>
 
     <div class="card">
       <div class="section-title"><h2>등록된 일정</h2><span class="muted">${list.length}개</span></div>
-      ${list.map(t=>`<div class="manager-item">
-        <div>
-          <b>${esc(t.name)}</b>
-          <div class="muted">${esc(t.category)} · ${t.days.map(d=>DAYS[d]).join(" ")} ${t.reward?'· 용돈 조건':''}</div>
+      ${list.map(task => `
+        <div class="manager-item">
+          <div>
+            <b>${esc(task.name)}</b>
+            <div class="muted">
+              ${esc(task.category)} · ${task.days.map(d => DAYS[d]).join(" ")}
+              ${task.reward ? "· 용돈 조건" : ""}
+            </div>
+          </div>
+          <button class="btn danger" onclick="deleteTask('${task.id}')">삭제</button>
         </div>
-        <button class="btn danger" onclick="deleteTask('${t.id}')">삭제</button>
-      </div>`).join("") || '<div class="empty">등록된 일정이 없어요.</div>'}
+      `).join("") || '<div class="empty">등록된 일정이 없어요.</div>'}
     </div>
 
     <div class="card">
-      <div class="section-title"><h2>데이터 백업</h2></div>
+      <div class="section-title"><h2>백업</h2></div>
       <div class="toolbar">
-        <button class="btn" onclick="exportData()">내보내기</button>
-        <label class="btn">가져오기<input type="file" accept="application/json" onchange="importData(event)" style="display:none"></label>
-        <button class="btn danger" onclick="resetData()">초기화</button>
+        <button class="btn" onclick="exportData()">현재 데이터 내보내기</button>
+        <button class="btn" onclick="reloadData()">Supabase 다시 불러오기</button>
       </div>
-      <p class="muted">현재 버전은 이 기기 안에만 저장돼요. 내보내기로 백업할 수 있어요.</p>
+      <p class="muted">일정과 체크 기록은 Supabase에 저장됩니다.</p>
     </div>`;
 
-  document.querySelectorAll(".daybtn").forEach(b=>b.onclick=()=>b.classList.toggle("active"));
-}
-
-function addTask(){
-  const name=document.getElementById("fName").value.trim();
-  if(!name){alert("할 일을 입력해 주세요.");return;}
-  const days=[...document.querySelectorAll(".daybtn.active")].map(b=>Number(b.dataset.day));
-  if(!days.length){alert("반복 요일을 하나 이상 선택해 주세요.");return;}
-  data.tasks.push({
-    id:"t"+Date.now(), child:data.selectedChild,
-    category:document.getElementById("fCat").value,
-    name, days, reward:document.getElementById("fReward").checked
+  document.querySelectorAll(".daybtn").forEach(button => {
+    button.onclick = () => button.classList.toggle("active");
   });
-  save(); render();
-}
-function deleteTask(id){
-  if(!confirm("이 일정을 삭제할까요?")) return;
-  data.tasks=data.tasks.filter(t=>t.id!==id); save(); render();
-}
-function exportData(){
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="family-quest-backup.json";a.click();
-  URL.revokeObjectURL(a.href);
-}
-function importData(e){
-  const file=e.target.files[0]; if(!file)return;
-  const r=new FileReader();
-  r.onload=()=>{try{data=JSON.parse(r.result);save();render();alert("가져왔어요.");}catch{alert("파일을 읽을 수 없어요.");}};
-  r.readAsText(file);
-}
-function resetData(){
-  if(!confirm("모든 체크 기록과 일정을 초기화할까요?")) return;
-  data=JSON.parse(JSON.stringify(defaultData));save();render();
 }
 
-function render(){
-  renderChildSwitch();
-  document.getElementById("todayView").classList.toggle("hidden",currentView!=="today");
-  document.getElementById("weekView").classList.toggle("hidden",currentView!=="week");
-  document.getElementById("manageView").classList.toggle("hidden",currentView!=="manage");
-  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===currentView));
-  if(currentView==="today")renderToday();
-  if(currentView==="week")renderWeek();
-  if(currentView==="manage")renderManage();
-}
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{currentView=b.dataset.view;render();});
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
-}
-
-async function startApp() {
-  const { data: testData, error: testError } = await supabaseClient
-    .from("app_data")
-    .select("*")
-    .limit(1);
-
-  if (testError) {
-    alert(
-      "Supabase 연결 실패\n\n" +
-      testError.message +
-      "\n\ncode: " +
-      (testError.code || "없음")
-    );
-    console.error(testError);
+async function addTask() {
+  const name = document.getElementById("fName").value.trim();
+  if (!name) {
+    alert("할 일을 입력해 주세요.");
     return;
   }
 
-  alert("Supabase 연결 성공!");
+  const days = [...document.querySelectorAll(".daybtn.active")]
+    .map(button => Number(button.dataset.day));
 
-  await loadFromSupabase();
+  if (!days.length) {
+    alert("반복 요일을 하나 이상 선택해 주세요.");
+    return;
+  }
+
+  const childTasks = data.tasks.filter(t => t.child_id === data.selectedChildId);
+  const nextSortOrder = childTasks.length
+    ? Math.max(...childTasks.map(t => Number(t.sort_order) || 0)) + 1
+    : 1;
+
+  const newTask = {
+    family_id: data.familyId,
+    child_id: data.selectedChildId,
+    category: document.getElementById("fCat").value,
+    name,
+    days,
+    reward_enabled: document.getElementById("fReward").checked,
+    reward_points: 0,
+    is_active: true,
+    sort_order: nextSortOrder
+  };
+
+  setStatus("일정을 저장하는 중...");
+
+  const { data: inserted, error } = await supabaseClient
+    .from("tasks")
+    .insert(newTask)
+    .select("id, family_id, child_id, name, category, days, reward_enabled, reward_points, is_active, sort_order")
+    .single();
+
+  if (error) {
+    console.error("일정 추가 실패:", error);
+    setStatus("⚠️ 일정 저장 실패");
+    alert("일정을 추가하지 못했어요.\n\n" + error.message);
+    return;
+  }
+
+  data.tasks.push({
+    ...inserted,
+    days: Array.isArray(inserted.days) ? inserted.days.map(Number) : [],
+    reward: !!inserted.reward_enabled
+  });
+
+  setStatus("☁️ 일정 저장 완료");
   render();
+}
+
+async function deleteTask(id) {
+  if (!confirm("이 일정을 삭제할까요?")) return;
+
+  setStatus("일정을 삭제하는 중...");
+
+  const { error } = await supabaseClient
+    .from("tasks")
+    .update({ is_active: false })
+    .eq("id", id)
+    .eq("family_id", data.familyId);
+
+  if (error) {
+    console.error("일정 삭제 실패:", error);
+    setStatus("⚠️ 일정 삭제 실패");
+    alert("일정을 삭제하지 못했어요.\n\n" + error.message);
+    return;
+  }
+
+  data.tasks = data.tasks.filter(task => task.id !== id);
+  setStatus("☁️ 일정 삭제 완료");
+  render();
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `family-quest-backup-${ymd(new Date())}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function reloadData() {
+  try {
+    await loadFromSupabase();
+    render();
+  } catch (error) {
+    console.error(error);
+    setStatus("⚠️ 다시 불러오기 실패");
+    alert(error.message);
+  }
+}
+
+function render() {
+  renderChildSwitch();
+
+  document.getElementById("todayView").classList.toggle("hidden", currentView !== "today");
+  document.getElementById("weekView").classList.toggle("hidden", currentView !== "week");
+  document.getElementById("manageView").classList.toggle("hidden", currentView !== "manage");
+
+  document.querySelectorAll("nav button").forEach(button => {
+    button.classList.toggle("active", button.dataset.view === currentView);
+  });
+
+  if (currentView === "today") renderToday();
+  if (currentView === "week") renderWeek();
+  if (currentView === "manage") renderManage();
+}
+
+document.querySelectorAll("nav button").forEach(button => {
+  button.onclick = () => {
+    currentView = button.dataset.view;
+    saveUiState();
+    render();
+  };
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(console.error);
+}
+
+async function startApp() {
+  loadUiState();
+
+  try {
+    await loadFromSupabase();
+    render();
+  } catch (error) {
+    console.error("앱 시작 실패:", error);
+    setStatus("⚠️ Supabase 연결 실패");
+    alert("앱을 불러오지 못했어요.\n\n" + error.message);
+  }
 }
 
 startApp();
