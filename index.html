@@ -159,7 +159,7 @@ async function loadFromSupabase() {
 
   data.familyId = family.id;
 
-  const [childrenResult, tasksResult, progressResult] = await Promise.all([
+  const [childrenResult, categoriesResult, tasksResult, progressResult] = await Promise.all([
     supabaseClient
       .from("children")
       .select("id, name, color, avatar, sort_order")
@@ -167,11 +167,33 @@ async function loadFromSupabase() {
       .order("sort_order", { ascending: true }),
 
     supabaseClient
-      .from("tasks")
-      .select("id, family_id, child_id, name, category, days, reward_enabled, reward_points, is_active, sort_order")
+      .from("categories")
+      .select("id, family_id, name, sort_order")
       .eq("family_id", data.familyId)
-      .eq("is_active", true)
       .order("sort_order", { ascending: true }),
+    
+    supabaseClient
+      .from("tasks")
+      .select(`
+      id,
+      family_id,
+      child_id,
+      name,
+      category,
+      category_id,
+      days,
+      reward_enabled,
+      reward_points,
+      is_active,
+      sort_order,
+      categories (
+        id,
+        name,
+        sort_order
+        )
+      `)
+      .eq("family_id", data.familyId)
+      .eq("is_active", true),
 
     supabaseClient
       .from("progress")
@@ -180,16 +202,38 @@ async function loadFromSupabase() {
       .eq("completed", true)
   ]);
 
+console.log("childrenResult", childrenResult);
+console.log("categoriesResult", categoriesResult);
+console.log("tasksResult", tasksResult);
+console.log("progressResult", progressResult);
+
   if (childrenResult.error) throw childrenResult.error;
   if (tasksResult.error) throw tasksResult.error;
   if (progressResult.error) throw progressResult.error;
 
   data.children = childrenResult.data || [];
-  data.tasks = (tasksResult.data || []).map(task => ({
-    ...task,
-    days: Array.isArray(task.days) ? task.days.map(Number) : [],
-    reward: !!task.reward_enabled
-  }));
+  data.categories = categoriesResult.data || [];
+
+  console.log("categoriesResult.data:", categoriesResult.data);
+  console.log("categoriesResult.error:", categoriesResult.error);
+  console.log("familyId:", data.familyId);
+
+  data.tasks = (tasksResult.data || [])
+    .sort((a, b) => {
+      const categoryOrderA = a.categories?.sort_order ?? 999;
+      const categoryOrderB = b.categories?.sort_order ?? 999;
+
+      if (categoryOrderA !== categoryOrderB) {
+      return categoryOrderA - categoryOrderB;
+    }
+
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    })
+    .map(task => ({
+      ...task,
+      days: Array.isArray(task.days) ? task.days.map(Number) : [],
+      reward: !!task.reward_enabled
+    }));
 
   data.completions = {};
   for (const row of progressResult.data || []) {
@@ -429,7 +473,38 @@ function renderManage() {
   const root = document.getElementById("manageView");
   const list = data.tasks.filter(t => t.child_id === data.selectedChildId);
 
+  const categories = [...(data.categories || [])]
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
   root.innerHTML = `
+    <div class="card">
+     <div class="section-title">
+       <h2>카테고리 순서</h2>
+     </div>
+
+      ${categories.map((category, index) => `
+        <div class="manager-item">
+          <div>
+            <b>${esc(category.name)}</b>
+          </div>
+
+          <div class="toolbar">
+            <button
+              class="btn"
+              onclick="moveCategory('${category.id}', -1)"
+              ${index === 0 ? "disabled" : ""}
+            >↑</button>
+
+            <button
+              class="btn"
+              onclick="moveCategory('${category.id}', 1)"
+              ${index === categories.length - 1 ? "disabled" : ""}
+            >↓</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>  
+
     <div class="card">
       <div class="section-title"><h2>새 반복 일정 추가</h2></div>
       <div class="formgrid">
@@ -498,6 +573,57 @@ function renderManage() {
   document.querySelectorAll(".daybtn").forEach(button => {
     button.onclick = () => button.classList.toggle("active");
   });
+}
+
+async function moveCategory(categoryId, direction) {
+  const categories = [...data.categories]
+    .sort((a, b) => a.sort_order - b.sort_order);
+
+  const currentIndex = categories.findIndex(c => c.id === categoryId);
+
+  if (currentIndex < 0) return;
+
+  const targetIndex = currentIndex + direction;
+
+  if (targetIndex < 0 || targetIndex >= categories.length) return;
+
+  const current = categories[currentIndex];
+  const target = categories[targetIndex];
+
+  // sort_order 교환
+  const currentOrder = current.sort_order;
+  const targetOrder = target.sort_order;
+
+  const { error } = await supabaseClient
+    .from("categories")
+    .upsert([
+      { ...current, sort_order: targetOrder },
+      { ...target, sort_order: currentOrder }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("카테고리 순서를 저장하지 못했습니다.");
+    return;
+  }
+
+  // 메모리 값도 변경
+  current.sort_order = targetOrder;
+  target.sort_order = currentOrder;
+
+  data.categories.sort((a, b) => a.sort_order - b.sort_order);
+
+  // task도 다시 정렬
+  data.tasks.sort((a, b) => {
+    const ca = data.categories.find(c => c.id === a.category_id)?.sort_order ?? 999;
+    const cb = data.categories.find(c => c.id === b.category_id)?.sort_order ?? 999;
+
+    if (ca !== cb) return ca - cb;
+
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+
+  render();
 }
 
 async function addTask() {
