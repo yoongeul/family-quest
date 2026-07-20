@@ -151,11 +151,11 @@ async function loadFromSupabase() {
   const { data: family, error: familyError } = await supabaseClient
     .from("families")
     .select("id, name")
-    .eq("name", "우리 가족")
+    .eq("name", "우리가족")
     .maybeSingle();
 
   if (familyError) throw familyError;
-  if (!family) throw new Error("families 테이블에 '우리 가족' 행이 없어요.");
+  if (!family) throw new Error("families 테이블에 '우리가족' 행이 없어요.");
 
   data.familyId = family.id;
 
