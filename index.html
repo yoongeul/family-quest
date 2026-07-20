@@ -69,21 +69,22 @@
       .formgrid{grid-template-columns:1fr}
       .formgrid .full{grid-column:auto}
     }
-    .note-row {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--line);
+    .note-card {
+      text-align: left;
     }
 
-    .note-row:last-child {
-      border-bottom: 0;
+    .note-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 12px;
+      width: 100%;
+      padding: 12px 0;
     }
 
     .note-content {
       flex: 1;
+      text-align: left;
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.5;
@@ -92,12 +93,7 @@
     .note-actions {
       display: flex;
       gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .btn.small {
-      padding: 5px 8px;
-      font-size: 13px;
+      justify-self: end;
     }
 
     #noteInput {
@@ -512,7 +508,7 @@ async function renderTodayNotes(dateStr, childId) {
   }
 
   root.innerHTML = `
-    <div class="card">
+    <div class="card note-card">
       <div class="section-title">
         <h2>📝 메모</h2>
       </div>
@@ -535,7 +531,7 @@ async function renderTodayNotes(dateStr, childId) {
     console.error("메모 불러오기 실패:", error);
 
     root.innerHTML = `
-      <div class="card">
+      <div class="card note-card">
         <div class="section-title">
           <h2>📝 메모</h2>
         </div>
@@ -550,7 +546,7 @@ async function renderTodayNotes(dateStr, childId) {
   }
 
   root.innerHTML = `
-    <div class="card">
+    <div class="card note-card">
       <div class="section-title">
         <h2>📝 메모</h2>
       </div>
@@ -560,9 +556,7 @@ async function renderTodayNotes(dateStr, childId) {
           notes.length
             ? notes.map(note => `
                 <div class="note-row">
-                  <div class="note-content">
-                    ${esc(note.content)}
-                  </div>
+                  <div class="note-content">${esc(note.content)}</div>
 
                   <div class="note-actions">
                     <button
