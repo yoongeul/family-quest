@@ -39,7 +39,13 @@
     .task-name.done{text-decoration:line-through;color:#999}
     .badge{font-size:12px;padding:5px 8px;border-radius:999px;background:#f1f1f1}
     .empty{text-align:center;padding:28px 12px;color:var(--muted)}
-    .status{margin-top:8px;font-size:13px;color:var(--muted)}
+    .status {
+      height: 20px;          /* 항상 공간 확보 */
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 20px;
+      overflow: hidden;      /* 내용이 넘치면 숨김 */}
     nav{position:fixed;left:0;right:0;bottom:0;background:white;border-top:1px solid var(--line);display:flex;justify-content:center;z-index:20}
     nav .inner{width:760px;display:grid;grid-template-columns:repeat(3,1fr)}
     nav button{border:0;background:white;padding:12px 6px 14px;font-size:13px}
@@ -260,8 +266,20 @@ let data = {
   parentChecks: {}
 };
 
+let statusTimer;
+
 function setStatus(message) {
-  document.getElementById("syncStatus").textContent = message;
+  const el = document.getElementById("syncStatus");
+
+  clearTimeout(statusTimer);
+
+  el.textContent = message;
+
+  if (message) {
+    statusTimer = setTimeout(() => {
+      el.textContent = "";
+    }, 800);
+  }
 }
 
 function saveUiState() {
@@ -448,16 +466,18 @@ function isDone(taskId, dateStr) {
 async function toggleDone(taskId, dateStr) {
   if (isSaving) return;
 
-  const task = data.tasks.find(t => t.id === taskId);
+  const task = data.tasks.find(task => task.id === taskId);
   if (!task) return;
 
   const key = `${dateStr}|${taskId}`;
-  const nextValue = !data.completions[key];
+  const previousValue = !!data.completions[key];
+  const nextValue = !previousValue;
 
   data.completions[key] = nextValue;
   isSaving = true;
+
   setStatus("저장 중...");
-  render();
+  renderTodayTasks();
 
   try {
     const { error } = await supabaseClient
@@ -481,13 +501,20 @@ async function toggleDone(taskId, dateStr) {
   } catch (error) {
     console.error("체크 저장 실패:", error);
 
-    data.completions[key] = !nextValue;
-
+    data.completions[key] = previousValue;
     setStatus("⚠️ 저장 실패");
-    alert("체크 상태를 저장하지 못했어요.\n\n" + error.message);
+
+    renderTodayTasks();
+
+    alert(
+      "체크 상태를 저장하지 못했어요.\n\n" +
+      error.message
+    );
   } finally {
     isSaving = false;
-    render();
+
+    // disabled 상태를 풀기 위해 할 일 부분만 다시 그림
+    renderTodayTasks();
   }
 }
 
@@ -623,87 +650,169 @@ function getSelectedChild() {
 
 function renderToday() {
   const root = document.getElementById("todayView");
+  const dateStr = ymd(getSelectedDate());
+
+  root.innerHTML = `
+    <div id="todayHero"></div>
+    <div id="todayNotes"></div>
+    <div id="todayTasks"></div>
+  `;
+
+  renderTodayTasks();
+  renderTodayNotes(dateStr, data.selectedChildId);
+}
+
+function renderTodayTasks() {
+  const heroRoot = document.getElementById("todayHero");
+  const tasksRoot = document.getElementById("todayTasks");
+
+  if (!heroRoot || !tasksRoot) return;
+
   const now = getSelectedDate();
   const dateStr = ymd(now);
   const selectedChild = getSelectedChild();
   const list = tasksFor(data.selectedChildId, now);
-  const doneCount = list.filter(t => isDone(t.id, dateStr)).length;
-  const pct = list.length ? Math.round(doneCount / list.length * 100) : 0;
-  const categories = [...new Set(list.map(t => t.category))];
 
-  root.innerHTML = `
+  const doneCount = list.filter(task =>
+    isDone(task.id, dateStr)
+  ).length;
+
+  const pct = list.length
+    ? Math.round(doneCount / list.length * 100)
+    : 0;
+
+  const categories = [
+    ...new Set(list.map(task => task.category))
+  ];
+
+  heroRoot.innerHTML = `
     <div class="card hero">
-      <div class="hero-title">${esc(selectedChild?.name || "")}의 미션</div>
-      <div class="toprow" style="justify-content:space-between">
-        <button class="btn" onclick="changeDate(-1)">◀ 전날</button>
-        <div style="text-align:center">
-          <b>${now.getMonth()+1}월 ${now.getDate()}일 (${DAYS[now.getDay()]})</b>
-          <div><input type="date" value="${dateStr}" onchange="pickDate(this.value)" style="margin-top:6px"></div>
-        </div>
-        <button class="btn" onclick="changeDate(1)">다음날 ▶</button>
+      <div class="hero-title">
+        ${esc(selectedChild?.name || "")}의 미션
       </div>
-      <button class="btn" onclick="goToday()">오늘로 돌아가기</button>
-      <div class="progress"><div style="width:${pct}%"></div></div>
-      <div><b>${doneCount} / ${list.length}</b> 완료 · ${pct}%</div>
-      <div class="muted">${pct === 100 && list.length ? "🎉 오늘 미션 완료!" : "하나씩 체크해 보자!"}</div>
+
+      <div class="toprow" style="justify-content:space-between">
+        <button class="btn" onclick="changeDate(-1)">
+          ◀ 전날
+        </button>
+
+        <div style="text-align:center">
+          <b>
+            ${now.getMonth() + 1}월
+            ${now.getDate()}일
+            (${DAYS[now.getDay()]})
+          </b>
+
+          <div>
+            <input
+              type="date"
+              value="${dateStr}"
+              onchange="pickDate(this.value)"
+              style="margin-top:6px"
+            >
+          </div>
+        </div>
+
+        <button class="btn" onclick="changeDate(1)">
+          다음날 ▶
+        </button>
+      </div>
+
+      <button class="btn" onclick="goToday()">
+        오늘로 돌아가기
+      </button>
+
+      <div class="progress">
+        <div style="width:${pct}%"></div>
+      </div>
+
+      <div>
+        <b>${doneCount} / ${list.length}</b>
+        완료 · ${pct}%
+      </div>
+
+      <div class="muted">
+        ${
+          pct === 100 && list.length
+            ? "🎉 오늘 미션 완료!"
+            : "하나씩 체크해 보자!"
+        }
+      </div>
     </div>
+  `;
 
-  <div id="todayNotes"></div>
-
-    ${categories.map(category => {
+  tasksRoot.innerHTML =
+    categories.map(category => {
       const rows = list
         .filter(task => task.category === category)
         .map(task => {
-      const done = isDone(task.id, dateStr);
-      const isStudy = task.category === "공부";
+          const done = isDone(task.id, dateStr);
+          const isStudy = task.category === "공부";
 
-return `
-  <div class="task ${isStudy ? "study-task" : ""}">
-    <button
-      class="check ${done ? "done" : ""}"
-      onclick="toggleDone('${task.id}','${dateStr}')"
-      aria-label="완료 체크"
-      ${isSaving ? "disabled" : ""}
-    >${done ? "✓" : ""}</button>
+          return `
+            <div class="task ${isStudy ? "study-task" : ""}">
+              <button
+                class="check ${done ? "done" : ""}"
+                onclick="toggleDone('${task.id}', '${dateStr}')"
+                aria-label="완료 체크"
+                ${isSaving ? "disabled" : ""}
+              >
+                ${done ? "✓" : ""}
+              </button>
 
-    <div class="task-name ${done ? "done" : ""}">
-      ${esc(task.name)}
-    </div>
+              <div class="task-name ${done ? "done" : ""}">
+                ${esc(task.name)}
+              </div>
 
-    ${task.reward ? '<span class="badge">용돈 조건</span>' : ''}
+              ${
+                task.reward
+                  ? '<span class="badge">용돈 조건</span>'
+                  : ""
+              }
 
-    ${isStudy ? `
-      <div class="study-progress">
-        <input
-          type="text"
-          class="progress-note"
-          placeholder="진도 입력"
-          value="${esc(getProgressNote(task.id, dateStr))}"
-          onchange="saveProgressNote(
-            '${task.id}',
-            '${dateStr}',
-            this.value
-          )"
-        />
+              ${
+                isStudy
+                  ? `
+                    <div class="study-progress">
+                      <input
+                        type="text"
+                        class="progress-note"
+                        placeholder="진도 입력"
+                        value="${esc(
+                          getProgressNote(task.id, dateStr)
+                        )}"
+                        onchange="saveProgressNote(
+                          '${task.id}',
+                          '${dateStr}',
+                          this.value
+                        )"
+                      />
 
-        <label class="parent-check">
-          <input
-            type="checkbox"
-            ${isParentChecked(task.id, dateStr) ? "checked" : ""}
-            onchange="toggleParentChecked(
-              '${task.id}',
-              '${dateStr}',
-              this.checked
-            )"
-          />
-          <span>👩🏻 확인완료</span>
-        </label>
-      </div>
-    ` : ""}
-  </div>
-`;
-    })
-    .join("");
+                      <label class="parent-check">
+                        <input
+                          type="checkbox"
+                          ${
+                            isParentChecked(task.id, dateStr)
+                              ? "checked"
+                              : ""
+                          }
+                          onchange="toggleParentChecked(
+                            '${task.id}',
+                            '${dateStr}',
+                            this.checked
+                          )"
+                        />
+
+                        <span>👩🏻 확인완료</span>
+                      </label>
+                    </div>
+                  `
+                  : ""
+              }
+            </div>
+          `;
+        })
+        .join("");
 
       return `
         <div class="card">
@@ -714,14 +823,13 @@ return `
           ${rows}
         </div>
       `;
-    }).join("") || `
-     <div class="card empty">
-       이 날짜에 등록된 일정이 없어요 🌿
-     </div>
-  `}
-  `;
-
-  renderTodayNotes(dateStr, data.selectedChildId);
+    })
+    .join("") ||
+    `
+      <div class="card empty">
+        이 날짜에 등록된 일정이 없어요 🌿
+      </div>
+    `;
 }
 
 async function renderTodayNotes(dateStr, childId) {
@@ -738,17 +846,19 @@ async function renderTodayNotes(dateStr, childId) {
     return;
   }
 
-  root.innerHTML = `
-    <div class="card note-card">
-      <div class="section-title">
-        <h2>📣 오늘 알림</h2>
-      </div>
+  if (!root.innerHTML.trim()) {
+    root.innerHTML = `
+      <div class="card note-card">
+        <div class="section-title">
+          <h2>📣 오늘 알림</h2>
+        </div>
 
-      <div class="muted">
-        알림을 불러오는 중...
+        <div class="muted">
+         알림을 불러오는 중...
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 
   const { data: notes, error } = await supabaseClient
     .from("notes")
@@ -760,7 +870,7 @@ async function renderTodayNotes(dateStr, childId) {
 
   if (error) {
     console.error("알림 불러오기 실패:", error);
-
+  
     root.innerHTML = `
       <div class="card note-card">
         <div class="section-title">
