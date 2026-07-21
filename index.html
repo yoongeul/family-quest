@@ -1320,17 +1320,39 @@ async function addTask() {
     ? Math.max(...childTasks.map(t => Number(t.sort_order) || 0)) + 1
     : 1;
 
-  const newTask = {
-    family_id: data.familyId,
-    child_id: data.selectedChildId,
-    category: document.getElementById("fCat").value,
-    name,
-    days,
-    reward_enabled: document.getElementById("fReward").checked,
-    reward_points: 0,
-    is_active: true,
-    sort_order: nextSortOrder
-  };
+  const categoryName = document.getElementById("fCat").value;
+
+  const { data: selectedCategory, error: categoryError } =
+   await supabaseClient
+    .from("categories")
+    .select("id")
+    .eq("family_id", data.familyId)
+    .eq("name", categoryName)
+    .maybeSingle();
+
+  if (categoryError) {
+    console.error("카테고리 조회 실패:", categoryError);
+    alert("카테고리를 확인하지 못했어요.\n\n" + categoryError.message);
+    return;
+  }
+
+  if (!selectedCategory) {
+    alert(`"${categoryName}" 카테고리를 찾지 못했어요.`);
+    return;
+  }
+
+const newTask = {
+  family_id: data.familyId,
+  child_id: data.selectedChildId,
+  category_id: selectedCategory.id,
+  category: categoryName,
+  name,
+  days,
+  reward_enabled: document.getElementById("fReward").checked,
+  reward_points: 0,
+  is_active: true,
+  sort_order: nextSortOrder
+};
 
   setStatus("일정을 저장하는 중...");
 
