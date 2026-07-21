@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#fff7cc" />
-  <title> 🔥 오늘의 미션 🔥 </title>
+  <title> 🍀 I CAN DO IT 🐻🐰  </title>
   <link rel="manifest" href="manifest.webmanifest" />
   <style>
     :root{
@@ -146,12 +146,73 @@
       font: inherit;
       background: white;
     }
+
+   .study-task {
+      display: grid;
+      grid-template-columns: auto minmax(160px, 1fr) minmax(220px, 320px);
+      align-items: center;
+      gap: 14px;
+    }
+
+    .study-progress {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .progress-note {
+      width: 150px;
+      min-width: 0;
+      padding: 9px 12px;
+      border: 1px solid #d9d9d9;
+      border-radius: 10px;
+      font: inherit;
+      background: #fff;
+    }
+
+    .progress-note:focus {
+      outline: 2px solid rgba(246, 217, 95, 0.45);
+      border-color: #e6c84f;
+    }
+
+    .parent-check {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .parent-check input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+    }
+
+    @media (max-width: 700px) {
+      .study-task {
+        grid-template-columns: auto 1fr;
+      }
+
+      .study-progress {
+        grid-column: 2;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding-top: 4px;
+     }
+
+      .progress-note {
+        width: min(180px, 100%);
+      }
+    }
   </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>🏡 우리집 오늘의 미션</h1>
+    <h1>♥️ 오늘을 응원해 🍀</h1>
     <div class="toprow" id="childSwitch"></div>
     <div id="syncStatus" class="status">불러오는 중...</div>
   </header>
@@ -166,7 +227,7 @@
     <div class="inner">
       <button data-view="today" class="active">✅ 오늘</button>
       <button data-view="week">📅 주간</button>
-      <button data-view="manage">👩 엄마 관리</button>
+      <button data-view="manage">🧰 관리</button>
     </div>
   </nav>
 </div>
@@ -194,7 +255,9 @@ let data = {
   selectedChildId: null,
   selectedDate: null,
   tasks: [],
-  completions: {}
+  completions: {},
+  progressNotes: {},
+  parentChecks: {}
 };
 
 function setStatus(message) {
@@ -274,9 +337,8 @@ async function loadFromSupabase() {
 
     supabaseClient
       .from("progress")
-      .select("id, family_id, child_id, task_id, progress_date, completed")
+      .select("id, family_id, child_id, task_id, progress_date, completed, progress_note, parent_checked")
       .eq("family_id", data.familyId)
-      .eq("completed", true)
   ]);
 
 console.log("childrenResult", childrenResult);
@@ -313,9 +375,15 @@ console.log("progressResult", progressResult);
     }));
 
   data.completions = {};
-  for (const row of progressResult.data || []) {
-    data.completions[`${row.progress_date}|${row.task_id}`] = true;
-  }
+  data.progressNotes = {};
+  data.parentChecks = {};
+for (const row of progressResult.data || []) {
+  const key = `${row.progress_date}|${row.task_id}`;
+
+  data.completions[key] = !!row.completed;
+  data.progressNotes[key] = row.progress_note || "";
+  data.parentChecks[key] = !!row.parent_checked;
+}
 
   const selectedStillExists = data.children.some(c => c.id === data.selectedChildId);
   if (!selectedStillExists) {
@@ -392,36 +460,126 @@ async function toggleDone(taskId, dateStr) {
   render();
 
   try {
-    if (nextValue) {
-      const { error } = await supabaseClient
-        .from("progress")
-        .insert({
+    const { error } = await supabaseClient
+      .from("progress")
+      .upsert(
+        {
           family_id: data.familyId,
           child_id: task.child_id,
           task_id: task.id,
           progress_date: dateStr,
-          completed: true
-        });
-      if (error) throw error;
-    } else {
-      const { error } = await supabaseClient
-        .from("progress")
-        .delete()
-        .eq("family_id", data.familyId)
-        .eq("child_id", task.child_id)
-        .eq("task_id", task.id)
-        .eq("progress_date", dateStr);
-      if (error) throw error;
-    }
+          completed: nextValue
+        },
+        {
+          onConflict: "child_id,task_id,progress_date"
+        }
+      );
+
+    if (error) throw error;
 
     setStatus("☁️ 저장 완료");
   } catch (error) {
     console.error("체크 저장 실패:", error);
+
     data.completions[key] = !nextValue;
+
     setStatus("⚠️ 저장 실패");
     alert("체크 상태를 저장하지 못했어요.\n\n" + error.message);
   } finally {
     isSaving = false;
+    render();
+  }
+}
+
+function getProgressNote(taskId, dateStr) {
+  const key = `${dateStr}|${taskId}`;
+  return data.progressNotes[key] || "";
+}
+
+function isParentChecked(taskId, dateStr) {
+  const key = `${dateStr}|${taskId}`;
+  return !!data.parentChecks[key];
+}
+
+async function saveProgressNote(taskId, dateStr, value) {
+  const task = data.tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  const key = `${dateStr}|${taskId}`;
+  const previousValue = data.progressNotes[key] || "";
+  const nextValue = value.trim();
+
+  data.progressNotes[key] = nextValue;
+  setStatus("저장 중...");
+
+  try {
+    const { error } = await supabaseClient
+      .from("progress")
+      .upsert(
+        {
+          family_id: data.familyId,
+          child_id: task.child_id,
+          task_id: task.id,
+          progress_date: dateStr,
+          progress_note: nextValue
+        },
+        {
+          onConflict: "child_id,task_id,progress_date"
+        }
+      );
+
+    if (error) throw error;
+
+    setStatus("☁️ 저장 완료");
+  } catch (error) {
+    console.error("진도 저장 실패:", error);
+
+    data.progressNotes[key] = previousValue;
+
+    setStatus("⚠️ 저장 실패");
+    alert("진도를 저장하지 못했어요.\n\n" + error.message);
+
+    render();
+  }
+}
+
+async function toggleParentChecked(taskId, dateStr, checked) {
+  const task = data.tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  const key = `${dateStr}|${taskId}`;
+  const previousValue = !!data.parentChecks[key];
+
+  data.parentChecks[key] = checked;
+  setStatus("저장 중...");
+
+  try {
+    const { error } = await supabaseClient
+      .from("progress")
+      .upsert(
+        {
+          family_id: data.familyId,
+          child_id: task.child_id,
+          task_id: task.id,
+          progress_date: dateStr,
+          parent_checked: checked
+        },
+        {
+          onConflict: "child_id,task_id,progress_date"
+        }
+      );
+
+    if (error) throw error;
+
+    setStatus("☁️ 저장 완료");
+  } catch (error) {
+    console.error("엄마 확인 저장 실패:", error);
+
+    data.parentChecks[key] = previousValue;
+
+    setStatus("⚠️ 저장 실패");
+    alert("엄마 확인 상태를 저장하지 못했어요.\n\n" + error.message);
+
     render();
   }
 }
@@ -493,27 +651,57 @@ function renderToday() {
   <div id="todayNotes"></div>
 
     ${categories.map(category => {
-  const rows = list
-    .filter(task => task.category === category)
-    .map(task => {
+      const rows = list
+        .filter(task => task.category === category)
+        .map(task => {
       const done = isDone(task.id, dateStr);
+      const isStudy = task.category === "공부";
 
-      return `
-        <div class="task">
-          <button
-            class="check ${done ? "done" : ""}"
-            onclick="toggleDone('${task.id}','${dateStr}')"
-            aria-label="완료 체크"
-            ${isSaving ? "disabled" : ""}
-          >${done ? "✓" : ""}</button>
+return `
+  <div class="task ${isStudy ? "study-task" : ""}">
+    <button
+      class="check ${done ? "done" : ""}"
+      onclick="toggleDone('${task.id}','${dateStr}')"
+      aria-label="완료 체크"
+      ${isSaving ? "disabled" : ""}
+    >${done ? "✓" : ""}</button>
 
-          <div class="task-name ${done ? "done" : ""}">
-            ${esc(task.name)}
-          </div>
+    <div class="task-name ${done ? "done" : ""}">
+      ${esc(task.name)}
+    </div>
 
-          ${task.reward ? '<span class="badge">용돈 조건</span>' : ''}
-        </div>
-      `;
+    ${task.reward ? '<span class="badge">용돈 조건</span>' : ''}
+
+    ${isStudy ? `
+      <div class="study-progress">
+        <input
+          type="text"
+          class="progress-note"
+          placeholder="진도 입력"
+          value="${esc(getProgressNote(task.id, dateStr))}"
+          onchange="saveProgressNote(
+            '${task.id}',
+            '${dateStr}',
+            this.value
+          )"
+        />
+
+        <label class="parent-check">
+          <input
+            type="checkbox"
+            ${isParentChecked(task.id, dateStr) ? "checked" : ""}
+            onchange="toggleParentChecked(
+              '${task.id}',
+              '${dateStr}',
+              this.checked
+            )"
+          />
+          <span>👩🏻 확인완료</span>
+        </label>
+      </div>
+    ` : ""}
+  </div>
+`;
     })
     .join("");
 
