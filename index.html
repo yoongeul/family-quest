@@ -705,6 +705,30 @@ async function renderTodayNotes(dateStr, childId) {
     ${renderNoteEditor()}
   </div>
 `;
+const noteTypeRadios =
+  document.querySelectorAll('input[name="noteType"]');
+
+const noticeDateWrap =
+  document.getElementById("noticeDateWrap");
+
+const noticeDateInput =
+  document.getElementById("noticeDate");
+
+noteTypeRadios.forEach(radio => {
+  radio.addEventListener("change", () => {
+    const selectedType =
+      document.querySelector('input[name="noteType"]:checked')?.value;
+
+    const isNotice = selectedType === "notice";
+
+    noticeDateWrap.style.display =
+      isNotice ? "block" : "none";
+
+    if (isNotice && !noticeDateInput.value) {
+      noticeDateInput.value = ymd(getSelectedDate());
+    }
+  });
+});
 
   updateStickyHeights();
 }
@@ -794,6 +818,14 @@ function renderNoteEditor() {
           >
           📢 공지
         </label>
+      </div>
+
+      <div id="noticeDateWrap" style="display:none; margin-top:8px;">
+        <label for="noticeDate">공지 날짜</label>
+        <input
+          type="date"
+          id="noticeDate"
+        >
       </div>
 
       <textarea
@@ -890,11 +922,24 @@ async function saveNote() {
     return;
   }
 
-  const dateStr = ymd(getSelectedDate());
+  const selectedDateStr = ymd(getSelectedDate());
   const childId = data.selectedChildId;
 
   const noteType =
     document.querySelector('input[name="noteType"]:checked')?.value || "memo";
+
+  // 공지는 지정 날짜, 메모는 현재 보고 있는 날짜
+  const noticeDateInput = document.getElementById("noticeDate");
+
+  const noteDate =
+    noteType === "notice"
+      ? noticeDateInput?.value
+      : selectedDateStr;
+
+  if (noteType === "notice" && !noteDate) {
+    alert("공지 날짜를 선택해 주세요.");
+    return;
+  }
 
   // 메모일 때만 아이 선택이 필요함
   if (noteType === "memo" && !childId) {
@@ -905,7 +950,7 @@ async function saveNote() {
   const noteData = {
     content,
     note_type: noteType,
-    note_date: dateStr,
+    note_date: noteDate,
 
     // 공지는 가족 공통, 메모는 현재 아이
     child_id: noteType === "notice" ? null : childId
@@ -942,9 +987,10 @@ async function saveNote() {
   }
 
   editingNoteId = null;
+  input.value = "";
 
   await renderTodayNotes(
-    dateStr,
+    selectedDateStr,
     data.selectedChildId
   );
 }
@@ -962,14 +1008,16 @@ async function deleteNote(noteId) {
 
   if (error) {
     console.error("공지/메모 삭제 실패:", error);
-    alert("메모 삭제에 실패했어요.");
+    alert(error.message);
     return;
   }
 
-  const dateStr = ymd(getSelectedDate());
+  if (editingNoteId === noteId) {
+    editingNoteId = null;
+  }
 
   await renderTodayNotes(
-    dateStr,
+    ymd(getSelectedDate()),
     data.selectedChildId
   );
 }
