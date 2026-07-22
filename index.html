@@ -6,214 +6,7 @@
   <meta name="theme-color" content="#fff7cc" />
   <title> 🍀 I CAN DO IT 🐻🐰  </title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <style>
-    :root{
-      --bg:#fffdf5; --card:#ffffff; --line:#dedbd0; --text:#222;
-      --muted:#777; --accent:#f6d95f; --accent2:#8fd3ff; --ok:#83d49a;
-      --danger:#ffb1b1; --shadow:0 8px 24px rgba(0,0,0,.07);
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--text)}
-    button,input,select{font:inherit}
-    button{cursor:pointer}
-    button:disabled{cursor:not-allowed;opacity:.55}
-    .app{max-width:760px;margin:0 auto;min-height:100vh;padding-bottom:88px}
-    header{position:sticky;top:0;z-index:10;background:rgba(255,253,245,.94);backdrop-filter:blur(12px);padding:16px 16px 10px;border-bottom:1px solid var(--line)}
-    h1{font-size:22px;margin:0 0 10px}
-    .toprow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .pill{border:1px solid var(--line);background:white;border-radius:999px;padding:9px 14px}
-    .pill.active{background:var(--accent);border-color:#d6bc4c;font-weight:700}
-    main{padding:14px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
-    .hero{background:linear-gradient(135deg,#fff4a8,#fff);display:grid;gap:10px}
-    .hero-title{font-weight:800;font-size:21px}
-    .progress{height:14px;background:#eee;border-radius:999px;overflow:hidden}
-    .progress > div{height:100%;background:var(--ok);width:0;transition:.25s}
-    .muted{color:var(--muted);font-size:14px}
-    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-    .section-title h2{font-size:18px;margin:0}
-    .task{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #eee}
-    .task:first-of-type{border-top:0}
-    .check{width:28px;height:28px;border-radius:9px;border:2px solid #bbb;background:white;display:grid;place-items:center;font-weight:900;padding:0}
-    .check.done{background:var(--ok);border-color:var(--ok)}
-    .task-name.done{text-decoration:line-through;color:#999}
-    .badge{font-size:12px;padding:5px 8px;border-radius:999px;background:#f1f1f1}
-    .empty{text-align:center;padding:28px 12px;color:var(--muted)}
-    .status {
-      height: 20px;          /* 항상 공간 확보 */
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 20px;
-      overflow: hidden;      /* 내용이 넘치면 숨김 */}
-    nav{position:fixed;left:0;right:0;bottom:0;background:white;border-top:1px solid var(--line);display:flex;justify-content:center;z-index:20}
-    nav .inner{width:760px;display:grid;grid-template-columns:repeat(3,1fr)}
-    nav button{border:0;background:white;padding:12px 6px 14px;font-size:13px}
-    nav button.active{font-weight:800;background:#fff9db}
-    .week{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;overflow:auto}
-    .daycol{min-width:115px;background:white;border:1px solid var(--line);border-radius:14px;padding:10px}
-    .dayhead{font-weight:800;text-align:center;margin-bottom:8px}
-    .mini{font-size:13px;padding:7px 0;border-top:1px dashed #ddd}
-    .mini:first-of-type{border-top:0}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-    .btn{border:1px solid var(--line);background:white;border-radius:12px;padding:10px 13px}
-    .btn.primary{background:var(--accent);font-weight:800}
-    .btn.danger{background:#fff0f0}
-    .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .formgrid .full{grid-column:1/-1}
-    label{font-size:13px;color:#555;display:block;margin-bottom:5px}
-    input,select{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;background:white}
-    .days{display:flex;gap:6px;flex-wrap:wrap}
-    .daybtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:white}
-    .daybtn.active{background:var(--accent2);font-weight:800}
-    .manager-item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px 0;border-top:1px solid #eee}
-    .manager-item:first-child{border-top:0}
-    .hidden{display:none!important}
-    .small{font-size:12px}
-    @media(max-width:560px){
-      .week{grid-template-columns:repeat(5,118px)}
-      .formgrid{grid-template-columns:1fr}
-      .formgrid .full{grid-column:auto}
-    }
-    .note-card {
-      text-align: left;
-    }
-
-    .note-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: start;
-      gap: 12px;
-      width: 100%;
-      padding: 12px 0;
-    }
-
-    .note-content {
-      flex: 1;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      text-align: left;
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.5;
-    }
-    .note-actions {
-      display: flex;
-      gap: 6px;
-      justify-self: end;
-    }
-
-  .note-type {
-    flex-shrink: 0;
-    display: inline-block;
-    padding: 3px 7px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .note-type.memo {
-   background: #f1f1f1;
-  }
-
-  .note-type.notice {
-    background: #fff1a8;
-  }
-
-  .note-type-picker {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  .note-type-picker label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    cursor: pointer;
-    width: auto;
-  }
-
-  .note-type-picker input[type="radio"] {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-  }
-
-    #noteInput {
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      font: inherit;
-      background: white;
-    }
-
-   .study-task {
-      display: grid;
-      grid-template-columns: auto minmax(160px, 1fr) minmax(220px, 320px);
-      align-items: center;
-      gap: 14px;
-    }
-
-    .study-progress {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 12px;
-    }
-
-    .progress-note {
-      width: 150px;
-      min-width: 0;
-      padding: 9px 12px;
-      border: 1px solid #d9d9d9;
-      border-radius: 10px;
-      font: inherit;
-      background: #fff;
-    }
-
-    .progress-note:focus {
-      outline: 2px solid rgba(246, 217, 95, 0.45);
-      border-color: #e6c84f;
-    }
-
-    .parent-check {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-      font-size: 14px;
-      color: #666;
-    }
-
-    .parent-check input {
-      width: 18px;
-      height: 18px;
-      margin: 0;
-    }
-
-    @media (max-width: 700px) {
-      .study-task {
-        grid-template-columns: auto 1fr;
-      }
-
-      .study-progress {
-        grid-column: 2;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-        padding-top: 4px;
-     }
-
-      .progress-note {
-        width: min(180px, 100%);
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
 <div class="app">
@@ -285,7 +78,6 @@ function setStatus(message) {
 function saveUiState() {
   localStorage.setItem(LOCAL_KEY, JSON.stringify({
     selectedChildId: data.selectedChildId,
-    selectedDate: data.selectedDate,
     currentView
   }));
 }
@@ -662,6 +454,25 @@ function renderToday() {
   renderTodayNotes(dateStr, data.selectedChildId);
 }
 
+function updateStickyHeights() {
+  const header = document.querySelector("header");
+  const todayHero = document.getElementById("todayHero");
+
+  if (header) {
+    document.documentElement.style.setProperty(
+      "--header-height",
+      `${header.offsetHeight}px`
+    );
+  }
+
+  if (todayHero) {
+    document.documentElement.style.setProperty(
+      "--today-hero-height",
+      `${todayHero.offsetHeight}px`
+    );
+  }
+}
+
 function renderTodayTasks() {
   const heroRoot = document.getElementById("todayHero");
   const tasksRoot = document.getElementById("todayTasks");
@@ -686,60 +497,47 @@ function renderTodayTasks() {
   ];
 
   heroRoot.innerHTML = `
-    <div class="card hero">
-      <div class="hero-title">
-        ${esc(selectedChild?.name || "")}의 미션
-      </div>
-
-      <div class="toprow" style="justify-content:space-between">
-        <button class="btn" onclick="changeDate(-1)">
-          ◀ 전날
-        </button>
-
-        <div style="text-align:center">
-          <b>
-            ${now.getMonth() + 1}월
-            ${now.getDate()}일
-            (${DAYS[now.getDay()]})
-          </b>
-
-          <div>
-            <input
-              type="date"
-              value="${dateStr}"
-              onchange="pickDate(this.value)"
-              style="margin-top:6px"
-            >
-          </div>
-        </div>
-
-        <button class="btn" onclick="changeDate(1)">
-          다음날 ▶
-        </button>
-      </div>
-
-      <button class="btn" onclick="goToday()">
-        오늘로 돌아가기
+  <div class="card hero compact-hero">
+    <div class="compact-hero-top">
+      <button class="btn compact-btn" onclick="changeDate(-1)">
+        ◀
       </button>
 
-      <div class="progress">
+      <div class="compact-date">
+        <strong>
+          ${esc(selectedChild?.name || "")} ·
+          ${now.getMonth() + 1}월 ${now.getDate()}일
+          (${DAYS[now.getDay()]})
+        </strong>
+
+        <input
+          class="compact-date-input"
+          type="date"
+          value="${dateStr}"
+          onchange="pickDate(this.value)"
+        >
+      </div>
+
+      <button class="btn compact-btn" onclick="changeDate(1)">
+        ▶
+      </button>
+
+      <button class="btn compact-today-btn" onclick="goToday()">
+        오늘
+      </button>
+    </div>
+
+    <div class="compact-progress-row">
+      <div class="progress compact-progress">
         <div style="width:${pct}%"></div>
       </div>
 
-      <div>
-        <b>${doneCount} / ${list.length}</b>
-        완료 · ${pct}%
-      </div>
-
-      <div class="muted">
-        ${
-          pct === 100 && list.length
-            ? "🎉 오늘 미션 완료!"
-            : "하나씩 체크해 보자!"
-        }
+      <div class="compact-progress-text">
+        <b>${doneCount}/${list.length}</b> · ${pct}%
       </div>
     </div>
-  `;
+  </div>
+`;
 
   tasksRoot.innerHTML =
     categories.map(category => {
@@ -860,25 +658,38 @@ async function renderTodayNotes(dateStr, childId) {
     `;
   }
 
-  const { data: notes, error } = await supabaseClient
-    .from("notes")
-    .select("id, content, note_type, note_date, created_at")
-    .eq("family_id", data.familyId)
-    .eq("child_id", childId)
-    .eq("note_date", dateStr)
-    .order("created_at", { ascending: true });
+  const [
+  { data: noticeNotes, error: noticeError },
+  { data: memoNotes, error: memoError }
+  ] = await Promise.all([
+    supabaseClient
+      .from("notes")
+      .select("id, content, note_type, note_date, created_at")
+      .eq("family_id", data.familyId)
+      .eq("note_type", "notice")
+      .eq("note_date", dateStr)
+      .is("child_id", null)
+      .order("created_at", { ascending: true }),
+
+    supabaseClient
+      .from("notes")
+      .select("id, content, note_type, note_date, created_at")
+      .eq("family_id", data.familyId)
+      .eq("child_id", childId)
+      .eq("note_type", "memo")
+      .eq("note_date", dateStr)
+      .order("created_at", { ascending: true })
+  ]);
+
+  const error = noticeError || memoError;
 
   if (error) {
     console.error("알림 불러오기 실패:", error);
-  
+
     root.innerHTML = `
       <div class="card note-card">
-        <div class="section-title">
-          <h2>📣 오늘 알림</h2>
-        </div>
-
-        <div class="empty">
-          오늘 알림을 불러오지 못했어요.
+        <div class="muted">
+          알림을 불러오지 못했습니다.
         </div>
       </div>
     `;
@@ -887,128 +698,168 @@ async function renderTodayNotes(dateStr, childId) {
   }
 
   root.innerHTML = `
-    <div class="card note-card">
-      <div class="section-title">
-        <h2>📣 오늘 알림</h2>
-      </div>
+  <div class="today-info-bar">
+    ${renderNoteBox("notice", "📢 공지", noticeNotes)}
+    ${renderNoteBox("memo", "📝 메모", memoNotes)}
+    ${renderNoteEditor()}
+  </div>
+`;
+}
 
-      <div id="noteList">
-        ${
-          notes.length
-            ? notes.map(note => `
-                <div class="note-row">
-                <div class="note-content"><span class="note-type ${note.note_type === "notice" ? "notice" : "memo"}">${note.note_type === "notice" ? "📢 공지" : "📝 메모"}</span><span>${esc(note.content)}</span></div>
+function renderNoteBox(type, title, notes) {
+  const emptyText =
+    type === "notice"
+      ? "등록된 공지가 없어요."
+      : "등록된 메모가 없어요.";
 
-                  <div class="note-actions">
-                    <button
-                      class="btn small"
-                      onclick="startEditNote('${note.id}', '${encodeURIComponent(note.content)}')"
-                    >
-                      ✏️
-                    </button>
+  const noteRows = notes.length
+    ? notes.map(note => `
+        <div class="note-row">
+          <div class="note-content">
+            <span>${esc(note.content)}</span>
+          </div>
 
-                    <button
-                      class="btn small"
-                      onclick="deleteNote('${note.id}')"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              `).join("")
-            : `
-              <div class="empty">
-                등록된 알림이 없어요.
-              </div>
-            `
-        }
-      </div>
+          <div class="note-actions">
+            <button
+              type="button"
+              class="info-icon-btn"
+              onclick="startEditNote(
+                '${note.id}',
+                '${encodeURIComponent(note.content)}'
+                '${type}'
+              )"
+              aria-label="${title} 수정"
+              title="수정"
+            >
+              ✏️
+            </button>
 
-      <div id="noteEditor" style="display:none; margin-top:12px;">
-        <div class="note-type-picker">
-          <label>
-            <input type="radio" name="noteType" value="memo" checked>
-            📝 메모
-          </label>
-
-          <label>
-            <input type="radio" name="noteType" value="notice">
-            📢 공지
-          </label>
+            <button
+              type="button"
+              class="info-icon-btn"
+              onclick="deleteNote('${note.id}')"
+              aria-label="${title} 삭제"
+              title="삭제"
+            >
+              🗑️
+            </button>
+          </div>
         </div>
-        <textarea
-          id="noteInput"
-          rows="3"
-          placeholder="알림을 입력하세요"
-          style="width:100%; resize:vertical;"
-        ></textarea>
+      `).join("")
+    : `<div class="empty">${emptyText}</div>`;
 
-        <div class="toprow" style="justify-content:flex-end; margin-top:8px;">
-          <button
-            class="btn"
-            onclick="cancelNoteEdit()"
-          >
-            취소
-          </button>
+  return `
+    <div class="today-info-box ${type}-box">
+      <div class="today-info-title">${title}</div>
 
-          <button
-            class="btn"
-            onclick="saveNote()"
-          >
-            저장
-          </button>
-        </div>
+      <div class="today-info-list">
+        ${noteRows}
       </div>
 
       <button
-        id="addNoteButton"
-        class="btn"
-        style="margin-top:12px;"
-        onclick="openNoteEditor()"
+        type="button"
+        class="info-icon-btn info-add-btn"
+        onclick="openNoteEditor('${type}')"
+        aria-label="${title} 추가"
+        title="추가"
       >
-        + 오늘 알림 추가
+        ＋
       </button>
     </div>
   `;
 }
 
+function renderNoteEditor() {
+  return `
+    <div id="noteEditor" style="display:none; margin-top:8px;">
+      <div class="note-type-picker">
+        <label>
+          <input
+            type="radio"
+            name="noteType"
+            value="memo"
+            checked
+          >
+          📝 메모
+        </label>
+
+        <label>
+          <input
+            type="radio"
+            name="noteType"
+            value="notice"
+          >
+          📢 공지
+        </label>
+      </div>
+
+      <textarea
+        id="noteInput"
+        rows="2"
+        placeholder="내용을 입력하세요"
+        style="width:100%; resize:vertical;"
+      ></textarea>
+
+      <div
+        class="toprow"
+        style="justify-content:flex-end; margin-top:8px;"
+      >
+        <button class="btn" onclick="cancelNoteEdit()">
+          취소
+        </button>
+
+        <button class="btn" onclick="saveNote()">
+          저장
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+
+updateStickyHeights();
+
 let editingNoteId = null;
 
-function openNoteEditor() {
+function openNoteEditor(type = "memo") {
   editingNoteId = null;
 
   const editor = document.getElementById("noteEditor");
   const input = document.getElementById("noteInput");
-  const button = document.getElementById("addNoteButton");
+  const typeRadio = document.querySelector(
+    `input[name="noteType"][value="${type}"]`
+  );
 
   if (!editor || !input) return;
 
   input.value = "";
-  editor.style.display = "block";
 
-  if (button) {
-    button.style.display = "none";
+  if (typeRadio) {
+    typeRadio.checked = true;
   }
 
+  editor.style.display = "block";
   input.focus();
 }
 
-function startEditNote(noteId, encodedContent) {
+function startEditNote(noteId, encodedContent, type = "memo") {
   editingNoteId = noteId;
 
   const editor = document.getElementById("noteEditor");
   const input = document.getElementById("noteInput");
-  const button = document.getElementById("addNoteButton");
+  const typeRadio = document.querySelector(
+    `input[name="noteType"][value="${type}"]`
+  );
 
   if (!editor || !input) return;
 
   input.value = decodeURIComponent(encodedContent);
-  editor.style.display = "block";
 
-  if (button) {
-    button.style.display = "none";
+  if (typeRadio) {
+    typeRadio.checked = true;
   }
 
+  editor.style.display = "block";
   input.focus();
 }
 
@@ -1017,7 +868,6 @@ function cancelNoteEdit() {
 
   const editor = document.getElementById("noteEditor");
   const input = document.getElementById("noteInput");
-  const button = document.getElementById("addNoteButton");
 
   if (input) {
     input.value = "";
@@ -1026,10 +876,6 @@ function cancelNoteEdit() {
   if (editor) {
     editor.style.display = "none";
   }
-
-  if (button) {
-    button.style.display = "inline-block";
-  }
 }
 
 async function saveNote() {
@@ -1037,19 +883,30 @@ async function saveNote() {
   const content = input?.value.trim();
 
   if (!content) {
-    alert("메모 내용을 입력해 주세요.");
+    alert("내용을 입력해 주세요.");
     return;
   }
 
   const dateStr = ymd(getSelectedDate());
   const childId = data.selectedChildId;
+
   const noteType =
     document.querySelector('input[name="noteType"]:checked')?.value || "memo";
 
-  if (!childId) {
+  // 메모일 때만 아이 선택이 필요함
+  if (noteType === "memo" && !childId) {
     alert("아이를 먼저 선택해 주세요.");
     return;
   }
+
+  const noteData = {
+    content,
+    note_type: noteType,
+    note_date: dateStr,
+
+    // 공지는 가족 공통, 메모는 현재 아이
+    child_id: noteType === "notice" ? null : childId
+  };
 
   let error;
 
@@ -1057,8 +914,7 @@ async function saveNote() {
     const result = await supabaseClient
       .from("notes")
       .update({
-        content,
-        note_type: noteType,
+        ...noteData,
         updated_at: new Date().toISOString()
       })
       .eq("id", editingNoteId)
@@ -1070,27 +926,28 @@ async function saveNote() {
       .from("notes")
       .insert({
         family_id: data.familyId,
-        child_id: childId,
-        note_date: dateStr,
-        content,
-        note_type: noteType
+        ...noteData
       });
 
     error = result.error;
   }
 
   if (error) {
-  console.error(error);
-  alert(error.message);
-  return;
+    console.error("공지/메모 저장 실패:", error);
+    alert(error.message);
+    return;
   }
 
   editingNoteId = null;
-  await renderTodayNotes(dateStr, childId);
+
+  await renderTodayNotes(
+    dateStr,
+    data.selectedChildId
+  );
 }
 
 async function deleteNote(noteId) {
-  const ok = confirm("이 메모를 삭제할까요?");
+  const ok = confirm("이 공지/메모를 삭제할까요?");
 
   if (!ok) return;
 
@@ -1101,7 +958,7 @@ async function deleteNote(noteId) {
     .eq("family_id", data.familyId);
 
   if (error) {
-    console.error("메모 삭제 실패:", error);
+    console.error("공지/메모 삭제 실패:", error);
     alert("메모 삭제에 실패했어요.");
     return;
   }
@@ -1437,6 +1294,8 @@ function render() {
   if (currentView === "today") renderToday();
   if (currentView === "week") renderWeek();
   if (currentView === "manage") renderManage();
+
+  updateStickyHeights();
 }
 
 document.querySelectorAll("nav button").forEach(button => {
@@ -1530,3 +1389,6 @@ startApp();
 </script>
 </body>
 </html>
+
+window.addEventListener("load", updateStickyHeights);
+window.addEventListener("resize", updateStickyHeights);
