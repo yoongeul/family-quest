@@ -1357,12 +1357,21 @@ function renderManage() {
                             </div>
                           </div>
 
-                          <button
-                            class="btn danger"
-                            onclick="deleteTask('${task.id}')"
-                          >
-                            삭제
-                          </button>
+                          <div class="toolbar">
+                            <button
+                              class="btn"
+                              onclick="editTaskName('${task.id}')"
+                            >
+                              수정
+                            </button>
+
+                            <button
+                              class="btn danger"
+                              onclick="deleteTask('${task.id}')"
+                            >
+                              삭제
+                            </button>
+                          </div>
                         </div>
                       `).join("")
                     : `
@@ -1622,6 +1631,68 @@ async function deleteTask(id) {
   data.tasks = data.tasks.filter(task => task.id !== id);
   setStatus("☁️ 일정 삭제 완료");
   render();
+}
+
+async function editTaskName(taskId) {
+  const task = data.tasks.find(task => task.id === taskId);
+
+  if (!task) {
+    alert("일정을 찾을 수 없어요.");
+    return;
+  }
+
+  const input = prompt(
+    "일정 이름을 수정해 주세요.",
+    task.name
+  );
+
+  // 취소 버튼을 누른 경우
+  if (input === null) return;
+
+  const nextName = input.trim();
+
+  if (!nextName) {
+    alert("일정 이름을 입력해 주세요.");
+    return;
+  }
+
+  // 기존 이름과 같으면 저장하지 않음
+  if (nextName === task.name) return;
+
+  const previousName = task.name;
+
+  task.name = nextName;
+  renderManage();
+  setStatus("저장 중...");
+
+  try {
+    const { error } = await supabaseClient
+      .from("tasks")
+      .update({
+        name: nextName
+      })
+      .eq("id", taskId);
+
+    if (error) throw error;
+
+    setStatus("☁️ 저장 완료");
+
+    // 오늘·주간 화면에도 수정된 이름 반영
+    renderTodayTasks();
+    renderWeek();
+  } catch (error) {
+    console.error("일정 수정 실패:", error);
+
+    task.name = previousName;
+
+    setStatus("⚠️ 저장 실패");
+    alert(
+      "일정을 수정하지 못했어요.\n\n" +
+      error.message
+    );
+
+    renderManage();
+  }
 }
 
 function exportData() {
