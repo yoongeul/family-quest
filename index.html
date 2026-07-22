@@ -565,8 +565,7 @@ function renderTodayTasks() {
           const done = isDone(task.id, dateStr);
           
           const isEnglishReading =
-            task.category === "영어책 읽기" ||
-            /영어책\s*\d+권/.test(task.name);
+            task.category === "독서";
 
           const isStudy =
             task.category === "공부" &&
@@ -1195,110 +1194,281 @@ function renderWeek() {
   `;
 }
 
+const collapsedManageCategories = new Set();
+
+function toggleManageCategory(categoryId) {
+  if (collapsedManageCategories.has(categoryId)) {
+    collapsedManageCategories.delete(categoryId);
+  } else {
+    collapsedManageCategories.add(categoryId);
+  }
+
+  renderManage();
+}
+
 function renderManage() {
   const root = document.getElementById("manageView");
-  const list = data.tasks.filter(t => t.child_id === data.selectedChildId);
+  if (!root) return;
+
+  const list = data.tasks.filter(
+    task => task.child_id === data.selectedChildId
+  );
 
   const categories = [...(data.categories || [])]
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    .sort(
+      (a, b) =>
+        (a.sort_order ?? 0) -
+        (b.sort_order ?? 0)
+    );
 
   root.innerHTML = `
-    <div class="card">
-     <div class="section-title">
-       <h2>카테고리 순서</h2>
-     </div>
+    <!-- 새 반복 일정 추가 -->
+    <div class="card manage-add card">
+      <div class="section-title">
+        <h2>새 반복 일정 추가</h2>
+      </div>
 
-      ${categories.map((category, index) => `
-        <div class="manager-item">
-          <div>
-            <b>${esc(category.name)}</b>
-          </div>
-
-          <div class="toolbar">
-            <button
-              class="btn"
-              onclick="moveCategory('${category.id}', -1)"
-              ${index === 0 ? "disabled" : ""}
-            >↑</button>
-
-            <button
-              class="btn"
-              onclick="moveCategory('${category.id}', 1)"
-              ${index === categories.length - 1 ? "disabled" : ""}
-            >↓</button>
-          </div>
-        </div>
-      `).join("")}
-    </div>  
-
-    <div class="card">
-      <div class="section-title"><h2>새 반복 일정 추가</h2></div>
       <div class="formgrid">
         <div>
           <label>분류</label>
+
           <select id="fCat">
-            <option>준비</option>
-            <option>아침</option>
-            <option>공부</option>
-            <option>학원</option>
-            <option>자기 전</option>
-            <option>잠</option>
-            <option>기타</option>
+            ${categories.map(category => `
+              <option value="${esc(category.name)}">
+                ${esc(category.name)}
+              </option>
+            `).join("")}
           </select>
         </div>
+
         <div>
           <label>할 일</label>
-          <input id="fName" placeholder="예: 원리셈 2장" />
+
+          <input
+            id="fName"
+            placeholder="예: 원리셈 2장"
+          />
         </div>
+
         <div class="full">
           <label>반복 요일</label>
+
           <div class="days" id="dayPick">
-            ${[1,2,3,4,5,6,0].map(i => `
+            ${[1, 2, 3, 4, 5, 6, 0].map(day => `
               <button
                 type="button"
-                class="daybtn ${WEEKDAYS.includes(i) ? "active" : ""}"
-                data-day="${i}"
-              >${DAYS[i]}</button>
+                class="daybtn ${
+                  WEEKDAYS.includes(day)
+                    ? "active"
+                    : ""
+                }"
+                data-day="${day}"
+              >
+                ${DAYS[day]}
+              </button>
             `).join("")}
           </div>
         </div>
+
         <div class="full">
-          <label><input type="checkbox" id="fReward" style="width:auto"> 주간 용돈 지급 조건에 포함</label>
+          <label>
+            <input
+              type="checkbox"
+              id="fReward"
+              style="width:auto"
+            >
+            주간 용돈 지급 조건에 포함
+          </label>
         </div>
+
         <div class="full">
-          <button class="btn primary" onclick="addTask()">일정 추가</button>
+          <button
+            class="btn primary"
+            onclick="addTask()"
+          >
+            일정 추가
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- 카테고리별 등록 일정 -->
+    <div class="card manage-task-card">
+      <div class="section-title">
+        <h2>등록된 일정</h2>
+        <span class="muted">${list.length}개</span>
+      </div>
+
+      ${
+        categories.map(category => {
+          const categoryTasks = list.filter(
+            task => task.category === category.name
+          );
+
+          const isCollapsed =
+            collapsedManageCategories.has(category.id);
+
+          return `
+            <div class="manage-category">
+              <button
+                type="button"
+                class="manage-category-toggle"
+                onclick="toggleManageCategory('${category.id}')"
+                aria-expanded="${!isCollapsed}"
+              >
+                <span class="manage-category-title">
+                  <b>${esc(category.name)}</b>
+
+                  <span class="manage-category-count">
+                    ${categoryTasks.length}
+                  </span>
+                </span>
+
+                <span class="manage-category-arrow">
+                  ${isCollapsed ? "▶" : "▼"}
+                </span>
+              </button>
+
+              <div class="
+                manage-category-content
+                ${isCollapsed ? "collapsed" : ""}
+              ">
+                ${
+                  categoryTasks.length
+                    ? categoryTasks.map(task => `
+                        <div class="manager-item">
+                          <div class="manager-task-info">
+                            <b>${esc(task.name)}</b>
+
+                            <div class="muted">
+                              ${
+                                Array.isArray(task.days)
+                                  ? task.days
+                                      .map(day => DAYS[day])
+                                      .join(" ")
+                                  : ""
+                              }
+
+                              ${
+                                task.reward
+                                  ? " · 용돈 조건"
+                                  : ""
+                              }
+                            </div>
+                          </div>
+
+                          <button
+                            class="btn danger"
+                            onclick="deleteTask('${task.id}')"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      `).join("")
+                    : `
+                      <div class="empty manage-category-empty">
+                        등록된 일정이 없어요.
+                      </div>
+                    `
+                }
+              </div>
+            </div>
+          `;
+        }).join("")
+      }
+
+      ${
+        !categories.length
+          ? `
+            <div class="empty">
+              등록된 카테고리가 없어요.
+            </div>
+          `
+          : ""
+      }
+    </div>
+
+    <!-- 카테고리 순서 -->
     <div class="card">
-      <div class="section-title"><h2>등록된 일정</h2><span class="muted">${list.length}개</span></div>
-      ${list.map(task => `
-        <div class="manager-item">
-          <div>
-            <b>${esc(task.name)}</b>
-            <div class="muted">
-              ${esc(task.category)} · ${task.days.map(d => DAYS[d]).join(" ")}
-              ${task.reward ? "· 용돈 조건" : ""}
+      <div class="section-title">
+        <h2>카테고리 순서</h2>
+      </div>
+
+      ${
+        categories.map((category, index) => `
+          <div class="manager-item">
+            <div>
+              <b>${esc(category.name)}</b>
+            </div>
+
+            <div class="toolbar">
+              <button
+                class="btn"
+                onclick="moveCategory('${category.id}', -1)"
+                ${index === 0 ? "disabled" : ""}
+                aria-label="${esc(category.name)} 위로 이동"
+              >
+                ↑
+              </button>
+
+              <button
+                class="btn"
+                onclick="moveCategory('${category.id}', 1)"
+                ${
+                  index === categories.length - 1
+                    ? "disabled"
+                    : ""
+                }
+                aria-label="${esc(category.name)} 아래로 이동"
+              >
+                ↓
+              </button>
             </div>
           </div>
-          <button class="btn danger" onclick="deleteTask('${task.id}')">삭제</button>
-        </div>
-      `).join("") || '<div class="empty">등록된 일정이 없어요.</div>'}
+        `).join("") ||
+        `
+          <div class="empty">
+            등록된 카테고리가 없어요.
+          </div>
+        `
+      }
     </div>
 
+    <!-- 백업 -->
     <div class="card">
-      <div class="section-title"><h2>백업</h2></div>
-      <div class="toolbar">
-        <button class="btn" onclick="exportData()">현재 데이터 내보내기</button>
-        <button class="btn" onclick="reloadData()">Supabase 다시 불러오기</button>
+      <div class="section-title">
+        <h2>백업</h2>
       </div>
-      <p class="muted">일정과 체크 기록은 Supabase에 저장됩니다.</p>
-    </div>`;
 
-  document.querySelectorAll(".daybtn").forEach(button => {
-    button.onclick = () => button.classList.toggle("active");
-  });
+      <div class="toolbar">
+        <button
+          class="btn"
+          onclick="exportData()"
+        >
+          현재 데이터 내보내기
+        </button>
+
+        <button
+          class="btn"
+          onclick="reloadData()"
+        >
+          Supabase 다시 불러오기
+        </button>
+      </div>
+
+      <p class="muted">
+        일정과 체크 기록은 Supabase에 저장됩니다.
+      </p>
+    </div>
+  `;
+
+  document
+    .querySelectorAll("#manageView .daybtn")
+    .forEach(button => {
+      button.onclick = () => {
+        button.classList.toggle("active");
+      };
+    });
 }
 
 async function moveCategory(categoryId, direction) {

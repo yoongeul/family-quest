@@ -669,7 +669,7 @@
 }
 
 .english-book-note {
-  width: 500px;
+  width: 300px;
   min-width: 0;
   flex: 0 0 150px;
   margin-left: 10px;
@@ -693,4 +693,92 @@
     flex-basis: 120px;
     font-size: 13px;
   }
+}
+
+.manage-task-card {
+  overflow: hidden;
+}
+
+.manage-category {
+  border-top: 1px solid var(--line);
+}
+
+.manage-category:first-of-type {
+  border-top: 0;
+}
+
+.manage-category-toggle {
+  width: 100%;
+  padding: 14px 4px;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.manage-category-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.manage-category-count {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #f3f1e8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.manage-category-arrow {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.manage-category-content {
+  padding-bottom: 8px;
+}
+
+.manage-category-content.collapsed {
+  display: none;
+}
+
+.manage-category-content .manager-item {
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.manage-category-empty {
+  padding: 10px 8px 16px;
+}
+
+.manager-task-info {
+  min-width: 0;
+}
+
+.manage-add-card .formgrid {
+  grid-template-columns: 1.2fr 1fr;
+  column-gap: 18px;
+}
+
+.manage-add-card select {
+  width: 100%;
+  min-height: 46px;
+  font-size: 17px;
+}
+
+#fCat {
+  height: 40px !important;
+  padding: 0 16px !important;
+  font-size: 18px !important;
 }
