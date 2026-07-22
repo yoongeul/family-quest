@@ -452,6 +452,7 @@ function renderToday() {
 
   renderTodayTasks();
   renderTodayNotes(dateStr, data.selectedChildId);
+  updateStickyHeights();
 }
 
 function updateStickyHeights() {
@@ -704,6 +705,8 @@ async function renderTodayNotes(dateStr, childId) {
     ${renderNoteEditor()}
   </div>
 `;
+
+  updateStickyHeights();
 }
 
 function renderNoteBox(type, title, notes) {
