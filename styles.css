@@ -863,3 +863,189 @@
 .manage-tab-btn.active {
   background: var(--accent);
 }
+
+.book-list-title {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.book-list {
+  border-top: 1px solid var(--line);
+}
+
+.book-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.book-list-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.book-list-name {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.book-list-progress {
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.book-list-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn.small {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .book-list-row {
+    align-items: flex-start;
+  }
+
+  .book-list-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+}
+
+.book-list-subject{
+  font-size:12px;
+  color:#666;
+  margin-right:8px;
+  font-weight:600;
+}
+
+.book-form-row{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  width:100%;
+  flex-wrap:nowrap;
+}
+
+.book-form-field{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:90px;
+}
+
+.book-form-field label{
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+}
+
+.book-form-field input,
+.book-form-field select{
+  height:38px;
+  width:100%;
+}
+
+.book-child-field{
+  width:100px;
+}
+
+.book-subject-field{
+  width:90px;
+}
+
+.book-title-field{
+  flex:1;
+  min-width:180px;
+}
+
+.book-progress-field{
+  width:110px;
+}
+
+.book-target-field{
+  width:110px;
+}
+
+.book-date-field{
+  width:145px;
+}
+
+.book-week-day-fields{
+  display:flex;
+  align-items:flex-end;
+  gap:6px;
+}
+
+.book-week-day-fields .book-form-field{
+  width:90px;
+}
+
+.book-save-btn{
+  height:38px;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+@media (max-width:900px){
+  .book-form-row{
+    flex-wrap:wrap;
+  }
+
+  .book-title-field{
+    min-width:220px;
+  }
+}
+
+.book-form-row{
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+}
+
+.book-form-row label{
+    font-size:12px;
+}
+
+.book-form-row input,
+.book-form-row select{
+    font-size:14px;
+    height:36px;
+}
+
+.book-save-btn{
+    font-size:14px;
+}
+
+.book-section-body{
+  display:block;
+  width:100%;
+}
+
+.book-form-row{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  width:100%;
+  flex-wrap:nowrap;
+}
+
+#bookList{
+  width:100%;
+  margin-top:24px;
+}

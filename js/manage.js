@@ -10,8 +10,8 @@ function toggleManageCategory(categoryId) {
   renderManage();
 }
 
-
 let bookSectionCollapsed = true;
+let editingBookId = null;
 
 function toggleBookSection() {
   bookSectionCollapsed = !bookSectionCollapsed;
@@ -58,128 +58,160 @@ function renderManage() {
         </span>
       </button>
 
-      <div
-        class="formgrid"
-        style="${bookSectionCollapsed ? "display:none;" : ""}"
-      >
-        <div>
-          <label>아이</label>
+        <div
+          class="book-section-body"
+          style="${bookSectionCollapsed ? "display:none;" : ""}"
+        >
+          <div class="book-form-wrap">
 
-          <select id="bookChildId">
-            ${(data.children || []).map(child => `
-              <option
-                value="${child.id}"
-                ${
-                  child.id === data.selectedChildId
-                    ? "selected"
-                    : ""
-                }
+          <div class="book-form-row book-form-row-main">
+
+            <div class="book-form-field book-child-field">
+              <label>아이</label>
+
+              <select id="bookChildId">
+                ${(data.children || []).map(child => `
+                  <option
+                    value="${child.id}"
+                    ${
+                      child.id === data.selectedChildId
+                        ? "selected"
+                        : ""
+                    }
+                  >
+                    ${esc(child.name)}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="book-form-field book-subject-field">
+              <label>과목</label>
+
+              <select id="bookSubject">
+                <option value="">선택</option>
+                <option value="국어">국어</option>
+                <option value="수학">수학</option>
+                <option value="영어">영어</option>
+                <option value="사회">사회</option>
+                <option value="과학">과학</option>
+                <option value="한자">한자</option>
+                <option value="독서">독서</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+
+            <div class="book-form-field book-title-field">
+              <label>교재명</label>
+
+              <input
+                id="bookTitle"
+                placeholder="예: 원리셈 C4"
+              />
+            </div>
+
+          </div>
+
+          <div class="book-form-row book-form-row-plan">
+
+            <div class="book-form-field book-progress-field">
+              <label>진도 방식</label>
+
+              <select
+                id="bookProgressType"
+                onchange="updateBookProgressFields()"
               >
-                ${esc(child.name)}
-              </option>
-            `).join("")}
-          </select>
-          <div id="bookList" class="card" style="margin-top:12px;"></div>
-        </div>
+                <option value="unit">Unit</option>
+                <option value="week_day">주 · 일</option>
+                <option value="page">Page</option>
+              </select>
+            </div>
 
-        <div>
-          <label>교재명</label>
+            <div
+              id="bookTargetValueField"
+              class="book-form-field book-target-field"
+            >
+              <label id="bookTargetValueLabel">
+                전체 Unit 수
+              </label>
 
-          <input
-            id="bookTitle"
-            placeholder="예: 원리셈 C4"
-          />
-        </div>
+              <input
+                id="bookTargetValue"
+                type="number"
+                min="1"
+                placeholder="예: 20"
+              />
+            </div>
 
-        <div>
-          <label>진도 방식</label>
+            <div
+              id="bookWeekDayFields"
+              class="book-week-day-fields"
+              style="display:none"
+            >
+              <div class="book-form-field">
+                <label>전체 주</label>
 
-          <select
-            id="bookProgressType"
-            onchange="updateBookProgressFields()"
-          >
-            <option value="unit">Unit</option>
-            <option value="week_day">주 · 일</option>
-            <option value="page">Page</option>
-          </select>
-        </div>
+                <input
+                  id="bookTargetWeeks"
+                  type="number"
+                  min="0"
+                  placeholder="예: 12"
+                />
+              </div>
 
-        <div>
-          <label>시작일</label>
+              <div class="book-form-field">
+                <label>마지막 일</label>
 
-          <input
-            id="bookStartDate"
-            type="date"
-            value="${ymd(new Date())}"
-          />
-        </div>
+                <input
+                  id="bookTargetDays"
+                  type="number"
+                  min="0"
+                  placeholder="예: 5"
+                />
+              </div>
 
-        <div
-          id="bookTargetValueField"
-          class="full"
-        >
-          <label id="bookTargetValueLabel">
-            전체 Unit 수
-          </label>
+              <div class="book-form-field">
+                <label>주당 일수</label>
 
-          <input
-            id="bookTargetValue"
-            type="number"
-            min="1"
-            placeholder="예: 20"
-          />
-        </div>
+                <input
+                  id="bookDaysPerWeek"
+                  type="number"
+                  min="1"
+                  value="5"
+                />
+              </div>
+            </div>
 
-        <div
-          id="bookWeekDayFields"
-          class="full book-week-day-fields"
-          style="display:none"
-        >
-          <div>
-            <label>전체 주</label>
+            <div class="book-form-field book-date-field">
+              <label>시작일</label>
 
-            <input
-              id="bookTargetWeeks"
-              type="number"
-              min="0"
-              placeholder="예: 12"
-            />
+              <input
+                id="bookStartDate"
+                type="date"
+                value="${ymd(new Date())}"
+              />
+            </div>
+
+            <button
+              type="button"
+              class="btn primary book-save-btn"
+              onclick="addBook()"
+            >
+              교재 등록
+            </button>
+
           </div>
 
-          <div>
-            <label>마지막 주의 일</label>
-
-            <input
-              id="bookTargetDays"
-              type="number"
-              min="0"
-              placeholder="예: 5"
-            />
-          </div>
-
-          <div>
-            <label>주당 학습일</label>
-
-            <input
-              id="bookDaysPerWeek"
-              type="number"
-              min="1"
-              value="5"
-            />
-          </div>
         </div>
 
-        <div class="full">
-          <button
-            type="button"
-            class="btn primary"
-            onclick="addBook()"
-          >
-            교재 등록
-          </button>
+          <div
+            id="bookList"
+            class="full"
+            style="width:100%;"
+          ></div>
         </div>
       </div>
-    </div>
+  
 
     <!-- 새 반복 일정 추가 -->
     <div class="card manage-add">
@@ -477,37 +509,68 @@ async function renderBookList() {
     return;
   }
 
+  data.books = books || [];
+
   if (!books.length) {
     root.innerHTML = "<p>등록된 교재가 없습니다.</p>";
     return;
   }
 
   root.innerHTML = `
-    <h3>📚 진행 중인 교재</h3>
+  <div class="book-list-title">
+    📚 진행 중인 교재
+  </div>
 
-    ${books.map(book => `
-      <div class="book-item">
+  <div class="book-list">
+    ${books.map(book => {
+      let progressText = "";
 
-        <b>${esc(book.title)}</b><br>
+      if (book.progress_type === "week_day") {
+        progressText = `Week ${book.target_weeks || 0}주 ${book.target_days || 0}일`;
+      } else if (book.progress_type === "page") {
+        progressText = `Page ${book.current_value || 1} / ${book.target_value || 0}`;
+      } else {
+        progressText = `Unit ${book.current_value || 1} / ${book.target_value || 0}`;
+      }
 
-        ${book.progress_type}
+      return `
+        <div class="book-list-row">
+          <div class="book-list-info">
+            <span class="book-list-subject">
+              ${esc(book.subject || "-")}
+            </span>
 
-        ${
-          book.progress_type === "week_day"
-            ? `${book.target_weeks}주 ${book.target_days}일`
-            : `${book.current_value} / ${book.target_value}`
-        }
+            <span class="book-list-name">
+              ${esc(book.title)}
+            </span>
 
-        <div style="margin-top:8px;">
-          <button onclick="editBook('${book.id}')">수정</button>
-          <button onclick="completeBook('${book.id}')">완료</button>
+            <span class="book-list-progress">
+              ${progressText}
+            </span>
+          </div>
+
+          <div class="book-list-actions">
+            <button
+              type="button"
+              class="btn small"
+              onclick="startEditBook('${book.id}')"
+            >
+              수정
+            </button>
+
+            <button
+              type="button"
+              class="btn small"
+              onclick="completeBook('${book.id}')"
+            >
+              완료
+            </button>
+          </div>
         </div>
-
-      </div>
-
-      <hr>
-    `).join("")}
-  `;
+      `;
+    }).join("")}
+  </div>
+`;
 }
 
 function updateBookProgressFields() {
@@ -559,6 +622,7 @@ function updateBookProgressFields() {
 
 async function addBook() {
   const childId = document.getElementById("bookChildId")?.value;
+  const subject = document.getElementById("bookSubject")?.value;
   const title = document.getElementById("bookTitle")?.value.trim();
   const progressType = document.getElementById("bookProgressType")?.value;
   const startDate = document.getElementById("bookStartDate")?.value;
@@ -577,6 +641,11 @@ async function addBook() {
 
   if (!childId) {
     alert("아이를 선택해 주세요.");
+    return;
+  }
+
+  if (!subject) {
+    alert("과목을 선택해 주세요.");
     return;
   }
 
@@ -612,14 +681,12 @@ async function addBook() {
     return;
   }
 
-  const newBook = {
+  const bookData = {
     family_id: data.familyId,
     child_id: childId,
+    subject,
     title,
     start_date: startDate,
-    completed_date: null,
-    status: "active",
-
     progress_type: progressType,
 
     target_value:
@@ -640,30 +707,52 @@ async function addBook() {
     days_per_week:
       progressType === "week_day"
         ? daysPerWeek
-        : null,
-
-    current_value: 1,
-    study_days: [],
-    excluded_pages: []
+        : null
   };
 
-  setStatus("교재를 저장하는 중...");
+  setStatus(
+    editingBookId
+      ? "교재를 수정하는 중..."
+      : "교재를 저장하는 중..."
+  );
 
-  const { data: inserted, error } = await supabaseClient
-    .from("books")
-    .insert(newBook)
-    .select("*")
-    .single();
+  let savedBook;
+  let error;
+
+  if (editingBookId) {
+    const result = await supabaseClient
+      .from("books")
+      .update(bookData)
+      .eq("id", editingBookId)
+      .select("*")
+      .single();
+
+    savedBook = result.data;
+    error = result.error;
+  } else {
+    const newBook = {
+      ...bookData,
+      completed_date: null,
+      status: "active",
+      current_value: 1,
+      study_days: [],
+      excluded_pages: []
+    };
+
+    const result = await supabaseClient
+      .from("books")
+      .insert(newBook)
+      .select("*")
+      .single();
+
+    savedBook = result.data;
+    error = result.error;
+  }
 
   if (error) {
-    console.error("교재 등록 실패:", error);
+    console.error("교재 저장 실패:", error);
     setStatus("⚠️ 교재 저장 실패");
-
-    alert(
-      "교재를 등록하지 못했어요.\n\n" +
-      error.message
-    );
-
+    alert("교재를 저장하지 못했어요.\n\n" + error.message);
     return;
   }
 
@@ -671,13 +760,60 @@ async function addBook() {
     data.books = [];
   }
 
-  data.books.push(inserted);
+  if (editingBookId) {
+    const index = data.books.findIndex(
+      book => book.id === editingBookId
+    );
+
+    if (index !== -1) {
+      data.books[index] = savedBook;
+    }
+
+    alert(`"${title}" 교재가 수정되었습니다.`);
+  } else {
+    data.books.push(savedBook);
+    alert(`"${title}" 교재가 등록되었습니다.`);
+  }
+
+  editingBookId = null;
 
   setStatus("✅ 교재 저장 완료");
-
-  alert(`"${title}" 교재가 등록되었습니다.`);
-
   renderManage();
+}
+
+function startEditBook(bookId) {
+  const book = data.books?.find(
+  book => String(book.id) === String(bookId)
+  );
+
+  if (!book) {
+    alert("교재 정보를 찾을 수 없어요.");
+    return;
+  }
+
+  editingBookId = bookId;
+
+  document.getElementById("bookChildId").value = book.child_id || "";
+  document.getElementById("bookSubject").value = book.subject || "";
+  document.getElementById("bookTitle").value = book.title || "";
+  document.getElementById("bookProgressType").value =
+    book.progress_type || "unit";
+  document.getElementById("bookStartDate").value =
+    book.start_date || "";
+
+  document.getElementById("bookTargetValue").value =
+    book.target_value ?? "";
+
+  document.getElementById("bookTargetWeeks").value =
+    book.target_weeks ?? "";
+
+  document.getElementById("bookTargetDays").value =
+    book.target_days ?? "";
+
+  document.getElementById("bookDaysPerWeek").value =
+    book.days_per_week ?? 5;
+
+  document.getElementById("bookTitle")?.focus();
 }
 
 async function addTask() {
