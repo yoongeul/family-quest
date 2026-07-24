@@ -214,7 +214,7 @@ function renderManage() {
   
 
     <!-- 새 반복 일정 추가 -->
-    <div class="card manage-add">
+    <div class="card manage-add-card">
       <button
         type="button"
         class="manage-category-toggle"
@@ -316,25 +316,61 @@ function renderManage() {
 
           return `
             <div class="manage-category">
-              <button
-                type="button"
-                class="manage-category-toggle"
-                onclick="toggleManageCategory('${category.id}')"
-                aria-expanded="${!isCollapsed}"
-              >
-                <span class="manage-category-title">
-                  <b>${esc(category.name)}</b>
+
+              <div class="manage-category-header">
+
+                <button
+                  type="button"
+                  class="manage-category-main"
+                  onclick="toggleManageCategory('${category.id}')"
+                  aria-expanded="${!isCollapsed}"
+                >
+                  <span class="manage-category-name">
+                    ${esc(category.name)}
+                  </span>
 
                   <span class="manage-category-count">
                     ${categoryTasks.length}
                   </span>
-                </span>
+                </button>
 
-                <span class="manage-category-arrow">
-                  ${isCollapsed ? "▶" : "▼"}
-                </span>
-              </button>
+                <div class="manage-category-actions">
+                  <button
+                    type="button"
+                    class="manage-category-move-btn"
+                    onclick="moveCategory('${category.id}', -1)"
+                    aria-label="${esc(category.name)} 위로 이동"
+                  >
+                    ↑
+                  </button>
 
+                  <button
+                    type="button"
+                    class="manage-category-move-btn"
+                    onclick="moveCategory('${category.id}', 1)"
+                    aria-label="${esc(category.name)} 아래로 이동"
+                  >
+                    ↓
+                  </button>
+
+                  <button
+                    type="button"
+                    class="manage-category-arrow-btn"
+                    onclick="toggleManageCategory('${category.id}')"
+                    aria-label="카테고리 펼치기 또는 접기"
+                  >
+                    ${isCollapsed ? "▶" : "▼"}
+                  </button>
+                </div>
+
+              </div>
+
+              <div
+                class="manage-category-content ${
+                  isCollapsed ? "collapsed" : ""
+                }"
+              >
+              </div>
               <div class="
                 manage-category-content
                 ${isCollapsed ? "collapsed" : ""}
@@ -402,54 +438,6 @@ function renderManage() {
             </div>
           `
           : ""
-      }
-    </div>
-
-    <!-- 카테고리 순서 -->
-    <div class="card">
-      <div class="section-title">
-        <h2>카테고리 순서</h2>
-      </div>
-
-      ${
-        categories.map((category, index) => `
-          <div class="manager-item">
-            <div>
-              <b>${esc(category.name)}</b>
-            </div>
-
-            <div class="toolbar">
-              <button
-                type="button"
-                class="btn"
-                onclick="moveCategory('${category.id}', -1)"
-                ${index === 0 ? "disabled" : ""}
-                aria-label="${esc(category.name)} 위로 이동"
-              >
-                ↑
-              </button>
-
-              <button
-                type="button"
-                class="btn"
-                onclick="moveCategory('${category.id}', 1)"
-                ${
-                  index === categories.length - 1
-                    ? "disabled"
-                    : ""
-                }
-                aria-label="${esc(category.name)} 아래로 이동"
-              >
-                ↓
-              </button>
-            </div>
-          </div>
-        `).join("") ||
-        `
-          <div class="empty">
-            등록된 카테고리가 없어요.
-          </div>
-        `
       }
     </div>
 

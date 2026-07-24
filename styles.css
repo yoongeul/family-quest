@@ -704,11 +704,16 @@
     font-size: 13px;
   }
 }
+/* ========================================
+   등록된 일정
+======================================== */
 
+/* 상 : 등록된 일정 카드 */
 .manage-task-card {
   overflow: hidden;
 }
 
+/* 중 : 카테고리(독서, 학교, 공부...) */
 .manage-category {
   border-top: 1px solid var(--line);
 }
@@ -717,44 +722,87 @@
   border-top: 0;
 }
 
-.manage-category-toggle {
-  width: 100%;
-  padding: 14px 4px;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+.manage-category-header{
+  width:100%;
+  padding:14px 4px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.manage-category-title-button{
+  flex:1;
+  min-width:0;
+  padding:0;
+  margin:0;
+  background:transparent;
+  text-align:left;
+  cursor:pointer;
+}
+
+.manage-category-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:16px;
+  font-weight:700;
+  line-height:1.4;
+}
+
+.manage-category-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+
+
+.manage-category-arrow{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:34px;
+  color:var(--muted);
+  font-size:13px;
+  cursor:pointer;
 }
 
 .manage-category-title {
   display: flex;
   align-items: center;
   gap: 8px;
+
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
+/* 하 : 카테고리 개수 */
 .manage-category-count {
   min-width: 24px;
   height: 24px;
   padding: 0 7px;
   border-radius: 999px;
   background: #f3f1e8;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--muted);
+
   font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
 }
 
+/* 하 : 펼침 아이콘 */
 .manage-category-arrow {
   color: var(--muted);
   font-size: 13px;
 }
 
+/* 카테고리 내용 */
 .manage-category-content {
   padding-bottom: 8px;
 }
@@ -772,9 +820,28 @@
   padding: 10px 8px 16px;
 }
 
+/* 중 : 일정 제목 */
 .manager-task-info {
   min-width: 0;
 }
+
+.manager-task-info strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* 하 : 일정 설명 */
+.manager-task-info .muted {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* ========================================
+   새 반복 일정 추가
+======================================== */
 
 .manage-add-card .formgrid {
   grid-template-columns: 1.2fr 1fr;
@@ -784,14 +851,18 @@
 .manage-add-card select {
   width: 100%;
   min-height: 46px;
-  font-size: 17px;
+  font-size: 15px;
 }
 
 #fCat {
   height: 40px !important;
   padding: 0 16px !important;
-  font-size: 18px !important;
+  font-size: 15px !important;
 }
+
+/* ========================================
+   모바일
+======================================== */
 
 @media (max-width: 600px) {
   .hero {
@@ -816,236 +887,486 @@
   }
 }
 
-.book-week-day-fields {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.book-week-day-fields > div {
-  min-width: 0;
-}
-
-@media (max-width: 600px) {
-  .book-week-day-fields {
-    grid-template-columns: 1fr;
-  }
-}
-
-.manage-book-card select {
-  min-height: 58px;
-  padding: 12px 16px;
-  font-size: 18px;
-}
-
-.manage-book-card input,
-.manage-book-card select {
-  min-height: 58px;
-  padding: 12px 16px;
-  font-size: 18px;
-}
-
-.manage-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.manage-tab-btn {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px;
-  background: white;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.manage-tab-btn.active {
-  background: var(--accent);
-}
-
-.book-list-title {
-  margin-top: 20px;
-  margin-bottom: 8px;
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.book-list {
-  border-top: 1px solid var(--line);
-}
-
-.book-list-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.book-list-info {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.book-list-name {
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.book-list-progress {
-  color: var(--muted);
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.book-list-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.btn.small {
-  padding: 6px 10px;
-  font-size: 13px;
-}
-
-@media (max-width: 600px) {
-  .book-list-row {
-    align-items: flex-start;
-  }
-
-  .book-list-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 3px;
-  }
-}
-
-.book-list-subject{
-  font-size:12px;
-  color:#666;
-  margin-right:8px;
-  font-weight:600;
-}
-
-.book-form-row{
+.manage-category-actions{
   display:flex;
-  align-items:flex-end;
-  gap:8px;
-  width:100%;
-  flex-wrap:nowrap;
-}
-
-.book-form-field{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  min-width:90px;
-}
-
-.book-form-field label{
-  font-size:12px;
-  color:var(--muted);
-  white-space:nowrap;
-}
-
-.book-form-field input,
-.book-form-field select{
-  height:38px;
-  width:100%;
-}
-
-.book-child-field{
-  width:100px;
-}
-
-.book-subject-field{
-  width:90px;
-}
-
-.book-title-field{
-  flex:1;
-  min-width:180px;
-}
-
-.book-progress-field{
-  width:110px;
-}
-
-.book-target-field{
-  width:110px;
-}
-
-.book-date-field{
-  width:145px;
-}
-
-.book-week-day-fields{
-  display:flex;
-  align-items:flex-end;
+  align-items:center;
   gap:6px;
 }
 
-.book-week-day-fields .book-form-field{
-  width:90px;
+.manage-category-actions .btn{
+  padding:5px 9px;
+  font-size:13px;
 }
 
-.book-save-btn{
-  height:38px;
-  white-space:nowrap;
-  flex-shrink:0;
-}
-
-@media (max-width:900px){
-  .book-form-row{
-    flex-wrap:wrap;
-  }
-
-  .book-title-field{
-    min-width:220px;
-  }
-}
-
-.book-form-row{
-    display:flex;
-    align-items:flex-end;
-    gap:10px;
-    flex-wrap:nowrap;
-    overflow-x:auto;
-}
-
-.book-form-row label{
-    font-size:12px;
-}
-
-.book-form-row input,
-.book-form-row select{
-    font-size:14px;
-    height:36px;
-}
-
-.book-save-btn{
-    font-size:14px;
-}
+/* ========================================
+   교재 관리
+======================================== */
 
 .book-section-body{
   display:block;
   width:100%;
 }
 
+/* 상: 교재 관리 카드 제목 */
+.manage-book-card .category-toggle h2{
+  margin:0;
+  font-size:20px;
+  font-weight:800;
+  line-height:1.3;
+  color:var(--text);
+}
+
+/* 중: 진행 중인 교재 소제목 */
+.book-list-title{
+  margin:0;
+  font-size:16px;
+  font-weight:700;
+  line-height:1.3;
+  color:var(--text);
+}
+
+/* 입력폼 전체 */
+.book-form-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  width:100%;
+  margin-top:14px;
+}
+
+/* 입력폼 한 줄 */
 .book-form-row{
   display:flex;
   align-items:flex-end;
-  gap:8px;
+  gap:10px;
   width:100%;
-  flex-wrap:nowrap;
 }
 
+/* 개별 입력칸 */
+.book-form-field{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  min-width:0;
+}
+
+/* 하: 입력 라벨 */
+.book-form-field label{
+  margin:0;
+  font-size:12px;
+  font-weight:500;
+  line-height:1.3;
+  color:var(--muted);
+  white-space:nowrap;
+}
+
+/* 입력창 */
+.manage-book-card input,
+.manage-book-card select{
+  width:100%;
+  height:40px;
+  min-height:40px;
+  padding:0 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  font-size:14px;
+  box-sizing:border-box;
+}
+
+/* 첫째 줄 */
+.book-child-field{
+  flex:0 0 110px;
+}
+
+.book-subject-field{
+  flex:0 0 110px;
+}
+
+.book-title-field{
+  flex:1;
+  min-width:220px;
+}
+
+/* 둘째 줄 */
+.book-progress-field{
+  flex:0 0 130px;
+}
+
+.book-target-field{
+  flex:0 0 140px;
+}
+
+.book-date-field{
+  flex:0 0 160px;
+}
+
+/* 주·일 방식 입력칸 */
+.book-week-day-fields{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+}
+
+.book-week-day-fields .book-form-field{
+  width:100px;
+}
+
+/* 등록 버튼 */
+.book-save-btn{
+  height:40px;
+  min-height:40px;
+  padding:0 16px;
+  flex:0 0 auto;
+  white-space:nowrap;
+  font-size:14px;
+  font-weight:800;
+}
+
+/* 진행 중인 교재 영역 */
 #bookList{
   width:100%;
   margin-top:24px;
+}
+
+.book-list-title{
+  padding-bottom:10px;
+  border-bottom:1px solid var(--line);
+}
+
+/* 교재 한 줄 */
+.book-list{
+  width:100%;
+}
+
+.book-list-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+}
+
+.book-list-info{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+/* 하: 과목 */
+.book-list-subject{
+  flex:0 0 auto;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.4;
+  color:var(--muted);
+}
+
+/* 중: 교재명 */
+.book-list-name{
+  min-width:0;
+  font-size:15px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* 하: 진도 설명 */
+.book-list-progress{
+  flex:0 0 auto;
+  font-size:12px;
+  font-weight:400;
+  line-height:1.4;
+  color:var(--muted);
+  white-space:nowrap;
+}
+
+.book-list-actions{
+  display:flex;
+  gap:6px;
+  flex:0 0 auto;
+}
+
+.book-list-actions .btn{
+  padding:7px 11px;
+  font-size:13px;
+}
+
+/* 태블릿·모바일 */
+@media (max-width:700px){
+  .book-form-row{
+    flex-wrap:wrap;
+  }
+
+  .book-child-field,
+  .book-subject-field{
+    flex:1 1 120px;
+  }
+
+  .book-title-field{
+    flex:1 1 100%;
+    min-width:100%;
+  }
+
+  .book-progress-field,
+  .book-target-field,
+  .book-date-field{
+    flex:1 1 130px;
+  }
+
+  .book-week-day-fields{
+    width:100%;
+    flex-wrap:wrap;
+  }
+
+  .book-week-day-fields .book-form-field{
+    flex:1 1 90px;
+    width:auto;
+  }
+
+  .book-list-row{
+    align-items:flex-start;
+  }
+
+  .book-list-info{
+    flex-wrap:wrap;
+    gap:4px 10px;
+  }
+}
+
+/* ========================================
+   제목형 버튼 기본 모양 제거
+======================================== */
+
+/* 교재 관리 / 새 반복 일정 추가 토글 */
+.category-toggle{
+  width:100%;
+  padding:16px 18px;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  text-align:left;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+
+/* 접기·펼치기 화살표 버튼 */
+.manage-category-arrow{
+  width:34px;
+  height:34px;
+  padding:0;
+  margin:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* 카테고리 제목 한 줄 정렬 */
+.manage-category-header{
+  width:100%;
+  padding:14px 4px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+/* ========================================
+   등록된 일정
+======================================== */
+
+.manage-task-card{
+  overflow:hidden;
+}
+
+/* 카테고리 구분선 */
+.manage-category{
+  border-top:1px solid var(--line);
+}
+
+.manage-category:first-of-type{
+  border-top:0;
+}
+
+/* 카테고리 제목 한 줄 */
+.manage-category-header{
+  width:100%;
+  min-height:58px;
+  padding:10px 4px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+/* 중 : 카테고리명 + 개수 */
+.manage-category-main{
+  flex:1;
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  padding:0;
+  margin:0;
+  border:0;
+  background:transparent;
+
+  color:inherit;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+
+.manage-category-name{
+  font-size:16px;
+  font-weight:700;
+  line-height:1.4;
+}
+
+/* 하 : 카테고리 개수 */
+.manage-category-count{
+  min-width:24px;
+  height:24px;
+  padding:0 7px;
+  border-radius:999px;
+  background:#f3f1e8;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:12px;
+  font-weight:500;
+  color:var(--muted);
+}
+
+/* 오른쪽 버튼 묶음 */
+.manage-category-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+
+/* 순서 이동 버튼 */
+.manage-category-move-btn{
+  width:34px;
+  height:34px;
+  padding:0;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+
+  color:var(--text);
+  font-size:15px;
+  cursor:pointer;
+}
+
+/* 접기·펼치기 버튼 */
+.manage-category-arrow-btn{
+  width:28px;
+  height:34px;
+  padding:0;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  border:0;
+  background:transparent;
+
+  color:var(--muted);
+  font-size:13px;
+  cursor:pointer;
+}
+
+/* 카테고리 일정 목록 */
+.manage-category-content{
+  padding-bottom:8px;
+}
+
+.manage-category-content.collapsed{
+  display:none;
+}
+
+/* 중 : 실제 일정명 */
+.manager-task-info strong{
+  font-size:15px;
+  font-weight:700;
+  line-height:1.4;
+}
+
+/* 하 : 요일 등 설명 */
+.manager-task-info .muted{
+  font-size:12px;
+  font-weight:500;
+  line-height:1.4;
+  color:var(--muted);
+}
+
+/* ========================================
+   관리 화면 카드 토글 버튼 초기화
+======================================== */
+
+.manage-book-card > button,
+.manage-add-card > button{
+  appearance:none;
+  -webkit-appearance:none;
+
+  width:100%;
+  padding:16px 18px;
+  margin:0;
+
+  border:0;
+  outline:0;
+  background:transparent;
+
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+
+  color:inherit;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+
+/* 카드 제목 */
+.manage-book-card > button h2,
+.manage-add-card > button h2{
+  margin:0;
+  font-size:20px;
+  font-weight:800;
+  line-height:1.3;
+}
+
+/* 오른쪽 펼침 화살표 */
+.manage-book-card > button .category-toggle-icon,
+.manage-add-card > button .category-toggle-icon{
+  flex:0 0 auto;
+  font-size:13px;
+  color:var(--muted);
 }
