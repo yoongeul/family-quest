@@ -575,9 +575,11 @@ async function startApp() {
 }
 
 startApp();
+
+window.addEventListener("load", updateStickyHeights);
+window.addEventListener("resize", updateStickyHeights);
+
 </script>
 </body>
 </html>
 
-window.addEventListener("load", updateStickyHeights);
-window.addEventListener("resize", updateStickyHeights);

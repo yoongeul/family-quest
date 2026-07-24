@@ -782,3 +782,26 @@
   padding: 0 16px !important;
   font-size: 18px !important;
 }
+
+@media (max-width: 600px) {
+  .hero {
+    overflow: hidden;
+  }
+
+  .hero .toprow {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .hero input[type="date"] {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .hero .toprow > * {
+    min-width: 0;
+  }
+}
