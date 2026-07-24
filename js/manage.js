@@ -79,6 +79,7 @@ function renderManage() {
               </option>
             `).join("")}
           </select>
+          <div id="bookList" class="card" style="margin-top:12px;"></div>
         </div>
 
         <div>
@@ -457,6 +458,56 @@ function renderManage() {
         button.classList.toggle("active");
       };
     });
+    renderBookList(); 
+}
+
+async function renderBookList() {
+  const root = document.getElementById("bookList");
+  if (!root) return;
+
+  const { data: books, error } = await supabaseClient
+    .from("books")
+    .select("*")
+    .eq("family_id", data.familyId)
+    .eq("status", "active")
+    .order("created_at");
+
+  if (error) {
+    root.innerHTML = "<p>교재를 불러오지 못했습니다.</p>";
+    return;
+  }
+
+  if (!books.length) {
+    root.innerHTML = "<p>등록된 교재가 없습니다.</p>";
+    return;
+  }
+
+  root.innerHTML = `
+    <h3>📚 진행 중인 교재</h3>
+
+    ${books.map(book => `
+      <div class="book-item">
+
+        <b>${esc(book.title)}</b><br>
+
+        ${book.progress_type}
+
+        ${
+          book.progress_type === "week_day"
+            ? `${book.target_weeks}주 ${book.target_days}일`
+            : `${book.current_value} / ${book.target_value}`
+        }
+
+        <div style="margin-top:8px;">
+          <button onclick="editBook('${book.id}')">수정</button>
+          <button onclick="completeBook('${book.id}')">완료</button>
+        </div>
+
+      </div>
+
+      <hr>
+    `).join("")}
+  `;
 }
 
 function updateBookProgressFields() {
@@ -506,8 +557,127 @@ function updateBookProgressFields() {
   }
 }
 
-function addBook() {
-  alert("교재 저장 기능을 연결할 예정입니다.");
+async function addBook() {
+  const childId = document.getElementById("bookChildId")?.value;
+  const title = document.getElementById("bookTitle")?.value.trim();
+  const progressType = document.getElementById("bookProgressType")?.value;
+  const startDate = document.getElementById("bookStartDate")?.value;
+
+  const targetValue =
+    Number(document.getElementById("bookTargetValue")?.value) || 0;
+
+  const targetWeeks =
+    Number(document.getElementById("bookTargetWeeks")?.value) || 0;
+
+  const targetDays =
+    Number(document.getElementById("bookTargetDays")?.value) || 0;
+
+  const daysPerWeek =
+    Number(document.getElementById("bookDaysPerWeek")?.value) || 5;
+
+  if (!childId) {
+    alert("아이를 선택해 주세요.");
+    return;
+  }
+
+  if (!title) {
+    alert("교재명을 입력해 주세요.");
+    document.getElementById("bookTitle")?.focus();
+    return;
+  }
+
+  if (!startDate) {
+    alert("시작일을 선택해 주세요.");
+    return;
+  }
+
+  if (
+    (progressType === "unit" || progressType === "page") &&
+    targetValue < 1
+  ) {
+    alert(
+      progressType === "page"
+        ? "전체 페이지 수를 입력해 주세요."
+        : "전체 Unit 수를 입력해 주세요."
+    );
+    return;
+  }
+
+  if (
+    progressType === "week_day" &&
+    targetWeeks < 1 &&
+    targetDays < 1
+  ) {
+    alert("전체 주 또는 마지막 주의 일 수를 입력해 주세요.");
+    return;
+  }
+
+  const newBook = {
+    family_id: data.familyId,
+    child_id: childId,
+    title,
+    start_date: startDate,
+    completed_date: null,
+    status: "active",
+
+    progress_type: progressType,
+
+    target_value:
+      progressType === "unit" || progressType === "page"
+        ? targetValue
+        : null,
+
+    target_weeks:
+      progressType === "week_day"
+        ? targetWeeks
+        : null,
+
+    target_days:
+      progressType === "week_day"
+        ? targetDays
+        : null,
+
+    days_per_week:
+      progressType === "week_day"
+        ? daysPerWeek
+        : null,
+
+    current_value: 1,
+    study_days: [],
+    excluded_pages: []
+  };
+
+  setStatus("교재를 저장하는 중...");
+
+  const { data: inserted, error } = await supabaseClient
+    .from("books")
+    .insert(newBook)
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error("교재 등록 실패:", error);
+    setStatus("⚠️ 교재 저장 실패");
+
+    alert(
+      "교재를 등록하지 못했어요.\n\n" +
+      error.message
+    );
+
+    return;
+  }
+
+  if (!Array.isArray(data.books)) {
+    data.books = [];
+  }
+
+  data.books.push(inserted);
+
+  setStatus("✅ 교재 저장 완료");
+
+  alert(`"${title}" 교재가 등록되었습니다.`);
+
+  renderManage();
 }
 
 async function addTask() {
