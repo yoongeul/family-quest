@@ -10,6 +10,21 @@ function toggleManageCategory(categoryId) {
   renderManage();
 }
 
+
+let bookSectionCollapsed = true;
+
+function toggleBookSection() {
+  bookSectionCollapsed = !bookSectionCollapsed;
+  renderManage();
+}
+
+let scheduleAddSectionCollapsed = true;
+
+function toggleScheduleAddSection() {
+  scheduleAddSectionCollapsed = !scheduleAddSectionCollapsed;
+  renderManage();
+}
+
 function renderManage() {
   const root = document.getElementById("manageView");
   if (!root) return;
@@ -26,13 +41,166 @@ function renderManage() {
     );
 
   root.innerHTML = `
-    <!-- 새 반복 일정 추가 -->
-    <div class="card manage-add card">
-      <div class="section-title">
-        <h2>새 반복 일정 추가</h2>
-      </div>
+    <!-- 교재 관리 -->
+    <div class="card manage-book-card">
+      <button
+        type="button"
+        class="manage-category-toggle"
+        onclick="toggleBookSection()"
+        aria-expanded="${!bookSectionCollapsed}"
+      >
+        <span class="manage-category-title">
+          <b>📚 교재 관리</b>
+        </span>
 
-      <div class="formgrid">
+        <span class="manage-category-arrow">
+          ${bookSectionCollapsed ? "▶" : "▼"}
+        </span>
+      </button>
+
+      <div
+        class="formgrid"
+        style="${bookSectionCollapsed ? "display:none;" : ""}"
+      >
+        <div>
+          <label>아이</label>
+
+          <select id="bookChildId">
+            ${(data.children || []).map(child => `
+              <option
+                value="${child.id}"
+                ${
+                  child.id === data.selectedChildId
+                    ? "selected"
+                    : ""
+                }
+              >
+                ${esc(child.name)}
+              </option>
+            `).join("")}
+          </select>
+        </div>
+
+        <div>
+          <label>교재명</label>
+
+          <input
+            id="bookTitle"
+            placeholder="예: 원리셈 C4"
+          />
+        </div>
+
+        <div>
+          <label>진도 방식</label>
+
+          <select
+            id="bookProgressType"
+            onchange="updateBookProgressFields()"
+          >
+            <option value="unit">Unit</option>
+            <option value="week_day">주 · 일</option>
+            <option value="page">Page</option>
+          </select>
+        </div>
+
+        <div>
+          <label>시작일</label>
+
+          <input
+            id="bookStartDate"
+            type="date"
+            value="${ymd(new Date())}"
+          />
+        </div>
+
+        <div
+          id="bookTargetValueField"
+          class="full"
+        >
+          <label id="bookTargetValueLabel">
+            전체 Unit 수
+          </label>
+
+          <input
+            id="bookTargetValue"
+            type="number"
+            min="1"
+            placeholder="예: 20"
+          />
+        </div>
+
+        <div
+          id="bookWeekDayFields"
+          class="full book-week-day-fields"
+          style="display:none"
+        >
+          <div>
+            <label>전체 주</label>
+
+            <input
+              id="bookTargetWeeks"
+              type="number"
+              min="0"
+              placeholder="예: 12"
+            />
+          </div>
+
+          <div>
+            <label>마지막 주의 일</label>
+
+            <input
+              id="bookTargetDays"
+              type="number"
+              min="0"
+              placeholder="예: 5"
+            />
+          </div>
+
+          <div>
+            <label>주당 학습일</label>
+
+            <input
+              id="bookDaysPerWeek"
+              type="number"
+              min="1"
+              value="5"
+            />
+          </div>
+        </div>
+
+        <div class="full">
+          <button
+            type="button"
+            class="btn primary"
+            onclick="addBook()"
+          >
+            교재 등록
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 새 반복 일정 추가 -->
+    <div class="card manage-add">
+      <button
+        type="button"
+        class="manage-category-toggle"
+        onclick="toggleScheduleAddSection()"
+        aria-expanded="${!scheduleAddSectionCollapsed}"
+      >
+        <span class="manage-category-title">
+          <b>📆 새 반복 일정 추가</b>
+        </span>
+
+        <span class="manage-category-arrow">
+          ${scheduleAddSectionCollapsed ? "▶" : "▼"}
+        </span>
+      </button>
+
+      <div
+        class="formgrid"
+        style="${scheduleAddSectionCollapsed ? "display:none;" : ""}"
+      >
         <div>
           <label>분류</label>
 
@@ -87,6 +255,7 @@ function renderManage() {
 
         <div class="full">
           <button
+            type="button"
             class="btn primary"
             onclick="addTask()"
           >
@@ -163,6 +332,7 @@ function renderManage() {
 
                           <div class="toolbar">
                             <button
+                              type="button"
                               class="btn"
                               onclick="editTaskName('${task.id}')"
                             >
@@ -170,6 +340,7 @@ function renderManage() {
                             </button>
 
                             <button
+                              type="button"
                               class="btn danger"
                               onclick="deleteTask('${task.id}')"
                             >
@@ -216,6 +387,7 @@ function renderManage() {
 
             <div class="toolbar">
               <button
+                type="button"
                 class="btn"
                 onclick="moveCategory('${category.id}', -1)"
                 ${index === 0 ? "disabled" : ""}
@@ -225,6 +397,7 @@ function renderManage() {
               </button>
 
               <button
+                type="button"
                 class="btn"
                 onclick="moveCategory('${category.id}', 1)"
                 ${
@@ -255,6 +428,7 @@ function renderManage() {
 
       <div class="toolbar">
         <button
+          type="button"
           class="btn"
           onclick="exportData()"
         >
@@ -262,6 +436,7 @@ function renderManage() {
         </button>
 
         <button
+          type="button"
           class="btn"
           onclick="reloadData()"
         >
@@ -282,6 +457,57 @@ function renderManage() {
         button.classList.toggle("active");
       };
     });
+}
+
+function updateBookProgressFields() {
+  const progressType =
+    document.getElementById("bookProgressType")?.value;
+
+  const valueField =
+    document.getElementById("bookTargetValueField");
+
+  const valueLabel =
+    document.getElementById("bookTargetValueLabel");
+
+  const valueInput =
+    document.getElementById("bookTargetValue");
+
+  const weekDayFields =
+    document.getElementById("bookWeekDayFields");
+
+  if (
+    !progressType ||
+    !valueField ||
+    !valueLabel ||
+    !valueInput ||
+    !weekDayFields
+  ) {
+    return;
+  }
+
+  if (progressType === "week_day") {
+    valueField.style.display = "none";
+    weekDayFields.style.display = "grid";
+    valueInput.value = "";
+    return;
+  }
+
+  valueField.style.display = "block";
+  weekDayFields.style.display = "none";
+
+  if (progressType === "unit") {
+    valueLabel.textContent = "전체 Unit 수";
+    valueInput.placeholder = "예: 20";
+  }
+
+  if (progressType === "page") {
+    valueLabel.textContent = "마지막 페이지";
+    valueInput.placeholder = "예: 120";
+  }
+}
+
+function addBook() {
+  alert("교재 저장 기능을 연결할 예정입니다.");
 }
 
 async function addTask() {
