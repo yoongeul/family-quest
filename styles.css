@@ -38,8 +38,8 @@
       line-height: 20px;
       overflow: hidden;      /* 내용이 넘치면 숨김 */}
     nav{position:fixed;left:0;right:0;bottom:0;background:white;border-top:1px solid var(--line);display:flex;justify-content:center;z-index:20}
-    nav .inner{width:760px;display:grid;grid-template-columns:repeat(3,1fr)}
-    nav button{border:0;background:white;padding:12px 6px 14px;font-size:13px}
+    nav .inner{width:760px;display:grid;grid-template-columns:repeat(4,1fr)}
+    nav button{border:0;background:white;padding:16px 4px 18px;font-size:15px;min-height:58px}
     nav button.active{font-weight:800;background:#fff9db}
     .week{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;overflow:auto}
     .daycol{min-width:115px;background:white;border:1px solid var(--line);border-radius:14px;padding:10px}
@@ -1369,4 +1369,165 @@
   flex:0 0 auto;
   font-size:13px;
   color:var(--muted);
+}
+
+/* ========================================
+   아침 루틴
+======================================== */
+
+.morning-board {
+  height: calc(100dvh - 205px);
+  padding: 8px 12px 16px;
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 제목 */
+.morning-title {
+  flex: 0 0 auto;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 8px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.morning-title strong {
+  font-weight: 800;
+}
+
+.morning-count {
+  flex-shrink: 0;
+  margin-left: 8px;
+
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+/* 2열 × 5줄 */
+.morning-grid {
+  flex: 1;
+  min-height: 0;
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+
+  gap: 6px;
+}
+
+/* 카드 */
+.morning-card {
+  min-width: 0;
+  min-height: 0;
+
+  padding: 3px 5px;
+
+  border: 2px solid var(--line);
+  border-radius: 15px;
+  background: white;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 2px;
+
+  cursor: pointer;
+  font: inherit;
+
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+
+  transition:
+    transform 0.12s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.morning-card:active {
+  transform: scale(0.96);
+}
+
+/* 아이콘 */
+.morning-icon {
+  display: block;
+  font-size: clamp(23px, 3.6vh, 30px);
+  line-height: 1;
+}
+
+/* 이름 */
+.morning-name {
+  display: block;
+
+  font-size: clamp(13px, 1.9vh, 16px);
+  font-weight: 800;
+  line-height: 1.15;
+
+  text-align: center;
+  word-break: keep-all;
+}
+
+/* 작은 안내 */
+.morning-status {
+  display: block;
+
+  font-size: 10px;
+  line-height: 1.1;
+  color: var(--muted);
+}
+
+/* ========================================
+   완료 상태
+======================================== */
+
+.morning-card.done {
+  border-color: transparent;
+}
+
+.morning-card.done .morning-icon {
+  font-size: clamp(23px, 3.5vh, 29px);
+  font-weight: 900;
+}
+
+.morning-card.done .morning-status {
+  color: #333;
+  font-weight: 700;
+}
+
+/* 완료 카드 */
+.morning-card.done {
+  background: rgba(251, 244, 43, 0.472);
+  border-color: var(--line);
+}
+
+.morning-card.done .morning-name {
+  font-size: 19px;
+  font-weight: 800;
+  color: #272727;
+}
+
+.morning-card.done .morning-status {
+  font-size: 14px;
+  font-weight: 700;
+  color: #272727;
+  margin-top: 3px;
+}
+
+/* 아침 화면에서는 페이지 스크롤 방지 */
+body.morning-mode {
+  overflow: hidden;
+  height: 100dvh;
+}
+
+body.morning-mode #morningView {
+  height: 100%;
+  overflow: hidden;
 }

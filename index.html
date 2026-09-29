@@ -17,6 +17,7 @@
   </header>
 
   <main>
+    <section id="morningView" class="hidden"></section>
     <section id="todayView"></section>
     <section id="weekView" class="hidden"></section>
     <section id="manageView" class="hidden"></section>
@@ -24,6 +25,7 @@
 
   <nav>
     <div class="inner">
+      <button data-view="morning">🌞 아침</button>
       <button data-view="today" class="active">✅ 오늘</button>
       <button data-view="week">📅 주간</button>
       <button data-view="manage">🧰 관리</button>
@@ -35,6 +37,7 @@
 <script src="./js/week.js"></script>
 <script src="./js/manage.js"></script>
 <script src="./js/today.js"></script>
+<script src="./js/morning.js"></script>
 
 <script>
 const SUPABASE_URL = "https://zuideuvsykcbwiweyzho.supabase.co";
@@ -472,14 +475,21 @@ async function reloadData() {
 function render() {
   renderChildSwitch();
 
+  document.body.classList.toggle(
+    "morning-mode",
+    currentView === "morning"
+  );
+
+  document.getElementById("morningView").classList.toggle("hidden", currentView !== "morning");
   document.getElementById("todayView").classList.toggle("hidden", currentView !== "today");
   document.getElementById("weekView").classList.toggle("hidden", currentView !== "week");
   document.getElementById("manageView").classList.toggle("hidden", currentView !== "manage");
-
+  
   document.querySelectorAll("nav button").forEach(button => {
     button.classList.toggle("active", button.dataset.view === currentView);
   });
 
+  if (currentView === "morning") renderMorning();
   if (currentView === "today") renderToday();
   if (currentView === "week") renderWeek();
   if (currentView === "manage") renderManage();
