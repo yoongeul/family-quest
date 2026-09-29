@@ -12,12 +12,82 @@ const MORNING_ROUTINE = [
 ];
 
 let morningDone = new Set();
+let morningLoadedKey = null;
+let morningSaving = false;
 
+
+/* 오늘 날짜 YYYY-MM-DD */
+function getMorningDate() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+
+/* 현재 아이 + 오늘 기록 불러오기 */
+async function loadMorningProgress() {
+  const selectedChild = getSelectedChild();
+  if (!selectedChild) return;
+
+  const dateStr = getMorningDate();
+  const loadKey = `${selectedChild.id}-${dateStr}`;
+
+  const { data: rows, error } = await supabaseClient
+    .from("morning_progress")
+    .select("routine_index")
+    .eq("child_id", selectedChild.id)
+    .eq("date", dateStr);
+
+  if (error) {
+    console.error("아침 루틴 불러오기 실패:", error);
+    return;
+  }
+
+  morningDone = new Set(
+    (rows || []).map(row => row.routine_index)
+  );
+
+  morningLoadedKey = loadKey;
+
+  renderMorning();
+}
+
+
+/* 화면 그리기 */
 function renderMorning() {
   const root = document.getElementById("morningView");
   if (!root) return;
 
   const selectedChild = getSelectedChild();
+  if (!selectedChild) return;
+
+  const dateStr = getMorningDate();
+  const loadKey = `${selectedChild.id}-${dateStr}`;
+
+  /*
+    아이가 바뀌었거나 날짜가 바뀌었으면
+    해당 기록을 DB에서 다시 불러온다.
+  */
+  if (morningLoadedKey !== loadKey) {
+    root.innerHTML = `
+      <div class="morning-board">
+        <div class="morning-title">
+          <div>
+            <span>🌞</span>
+            <strong>${esc(selectedChild.name || "")}의 아침 준비</strong>
+          </div>
+        </div>
+      </div>
+    `;
+
+    loadMorningProgress();
+    return;
+  }
+
   const doneCount = morningDone.size;
 
   root.innerHTML = `
@@ -26,7 +96,7 @@ function renderMorning() {
       <div class="morning-title">
         <div>
           <span>🌞</span>
-          <strong>${esc(selectedChild?.name || "")}의 아침 준비</strong>
+          <strong>${esc(selectedChild.name || "")}의 아침 준비</strong>
         </div>
 
         <span class="morning-count">
@@ -35,6 +105,7 @@ function renderMorning() {
       </div>
 
       <div class="morning-grid">
+
         ${MORNING_ROUTINE.map((item, index) => {
           const done = morningDone.has(index);
 
@@ -43,45 +114,103 @@ function renderMorning() {
               type="button"
               class="morning-card ${done ? "done" : ""}"
               onclick="toggleMorningRoutine(${index})"
+              ${morningSaving ? "disabled" : ""}
             >
-              <span class="morning-icon">
-                ${
+              ${
                 done
-                    ? `
+                  ? `
                     <span class="morning-name">
-                        ${item.name}
+                      ${item.name}
                     </span>
 
                     <span class="morning-status">
-                        완료
+                      완료
                     </span>
-                    `
-                    : `
+                  `
+                  : `
                     <span class="morning-icon">
-                        ${item.icon}
+                      ${item.icon}
                     </span>
 
                     <span class="morning-name">
-                        ${item.name}
+                      ${item.name}
                     </span>
-                    `
-                }
+                  `
+              }
             </button>
           `;
         }).join("")}
+
       </div>
 
     </div>
   `;
 }
 
-function toggleMorningRoutine(index) {
-  if (morningDone.has(index)) {
+
+/* 완료 / 완료취소 + DB 저장 */
+async function toggleMorningRoutine(index) {
+  if (morningSaving) return;
+
+  const selectedChild = getSelectedChild();
+  if (!selectedChild) return;
+
+  const dateStr = getMorningDate();
+  const wasDone = morningDone.has(index);
+
+  morningSaving = true;
+
+  /*
+    화면은 먼저 바꿔준다.
+    아이가 눌렀을 때 바로 반응하도록.
+  */
+  if (wasDone) {
     morningDone.delete(index);
   } else {
     morningDone.add(index);
   }
 
   renderMorning();
-}
 
+  let error;
+
+  if (wasDone) {
+    /* 완료 취소 → DB 행 삭제 */
+
+    const result = await supabaseClient
+      .from("morning_progress")
+      .delete()
+      .eq("child_id", selectedChild.id)
+      .eq("date", dateStr)
+      .eq("routine_index", index);
+
+    error = result.error;
+
+  } else {
+    /* 완료 → DB 행 추가 */
+
+    const result = await supabaseClient
+      .from("morning_progress")
+      .insert({
+        child_id: selectedChild.id,
+        date: dateStr,
+        routine_index: index
+      });
+
+    error = result.error;
+  }
+
+  if (error) {
+    console.error("아침 루틴 저장 실패:", error);
+
+    /* 저장 실패하면 화면도 원래 상태로 복구 */
+    if (wasDone) {
+      morningDone.add(index);
+    } else {
+      morningDone.delete(index);
+    }
+  }
+
+  morningSaving = false;
+  renderMorning();
+}
