@@ -81,13 +81,6 @@ function renderTodayTasks() {
           ${now.getMonth() + 1}월 ${now.getDate()}일
           (${DAYS[now.getDay()]})
         </strong>
-
-        <input
-          class="compact-date-input"
-          type="date"
-          value="${dateStr}"
-          onchange="pickDate(this.value)"
-        >
       </div>
 
       <button class="btn compact-btn" onclick="changeDate(1)">
