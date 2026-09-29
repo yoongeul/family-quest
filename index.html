@@ -91,12 +91,26 @@ function saveUiState() {
 
 function loadUiState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
+    const saved = JSON.parse(
+      localStorage.getItem(LOCAL_KEY) || "{}"
+    );
+
     data.selectedChildId = saved.selectedChildId || null;
     data.selectedDate = saved.selectedDate || ymd(new Date());
-    currentView = ["today", "week", "manage"].includes(saved.currentView)
-      ? saved.currentView
-      : "today";
+
+    const hour = new Date().getHours();
+
+    // 오전 4시 ~ 8시 59분에는 무조건 아침 화면
+    if (hour >= 4 && hour < 9) {
+      currentView = "morning";
+    } else {
+      currentView = ["morning", "today", "week", "manage"].includes(
+        saved.currentView
+      )
+        ? saved.currentView
+        : "today";
+    }
+
   } catch {
     data.selectedDate = ymd(new Date());
   }
