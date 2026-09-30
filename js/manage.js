@@ -855,6 +855,7 @@ async function addBook() {
   renderManage();
 }
 
+
 function startEditBook(bookId) {
   const book = data.books?.find(
   book => String(book.id) === String(bookId)
