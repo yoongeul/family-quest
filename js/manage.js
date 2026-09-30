@@ -642,6 +642,14 @@ async function renderBookList() {
             >
               완료
             </button>
+
+            <button
+              type="button"
+              class="btn small"
+              onclick="deleteBook('${book.id}', '${esc(book.title)}')"
+            >
+              삭제
+            </button>
           </div>
         </div>
       `;
@@ -855,6 +863,34 @@ async function addBook() {
   renderManage();
 }
 
+async function deleteBook(bookId, bookTitle) {
+  const ok = confirm(
+    `"${bookTitle}" 교재를 삭제할까요?\n삭제한 교재는 복구할 수 없습니다.`
+  );
+
+  if (!ok) return;
+
+  setStatus("교재를 삭제하는 중...");
+
+  const { error } = await supabaseClient
+    .from("books")
+    .delete()
+    .eq("id", bookId);
+
+  if (error) {
+    console.error("교재 삭제 실패:", error);
+    setStatus("⚠️ 교재 삭제 실패");
+    alert("교재를 삭제하지 못했어요.\n\n" + error.message);
+    return;
+  }
+
+  data.books = data.books.filter(
+    book => book.id !== bookId
+  );
+
+  setStatus("✅ 교재 삭제 완료");
+  renderManage();
+}
 
 function startEditBook(bookId) {
   const book = data.books?.find(
