@@ -91,17 +91,6 @@ function renderTodayTasks() {
         오늘
       </button>
     </div>
-
-    <div class="compact-progress-row">
-      <div class="progress compact-progress">
-        <div style="width:${pct}%"></div>
-      </div>
-
-      <div class="compact-progress-text">
-        <b>${doneCount}/${list.length}</b> · ${pct}%
-      </div>
-    </div>
-  </div>
 `;
 
   tasksRoot.innerHTML =
@@ -112,7 +101,28 @@ function renderTodayTasks() {
         .filter(task => task.category === category)
         .map(task => {
           const done = isDone(task.id, dateStr);
-          
+
+          // 학원 → 버튼형 일정
+          if (category === "학원") {
+            return `
+              <button
+                type="button"
+                class="academy-task ${done ? "done" : ""}"
+                onclick="toggleDone('${task.id}', '${dateStr}')"
+                ${isSaving ? "disabled" : ""}
+              >
+                <span class="academy-task-name">
+                  ${done ? "✓ " : ""}${esc(task.name)}
+                </span>
+
+                <span class="academy-task-time">
+                  ${task.time ? esc(task.time) : ""}
+                </span>
+              </button>
+            `;
+          }
+
+          // 나머지 카테고리는 기존 방식 그대로
           const isEnglishReading =
             task.category === "독서";
 
@@ -224,7 +234,11 @@ function renderTodayTasks() {
             </span>
           </button>
 
-          <div class="category-content ${isCollapsed ? "collapsed" : ""}">
+          <div class="
+            category-content
+            ${category === "학원" ? "academy-grid" : ""}
+            ${isCollapsed ? "collapsed" : ""}
+          ">
             ${rows}
           </div>
         </div>

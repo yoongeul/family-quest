@@ -255,6 +255,15 @@ function renderManage() {
           />
         </div>
 
+        <div>
+          <label>시간 <span class="muted">(선택)</span></label>
+
+          <input
+            type="time"
+            id="fTime"
+          />
+        </div>
+
         <div class="full">
           <label>반복 요일</label>
 
@@ -365,12 +374,6 @@ function renderManage() {
 
               </div>
 
-              <div
-                class="manage-category-content ${
-                  isCollapsed ? "collapsed" : ""
-                }"
-              >
-              </div>
               <div class="
                 manage-category-content
                 ${isCollapsed ? "collapsed" : ""}
@@ -806,6 +809,7 @@ function startEditBook(bookId) {
 
 async function addTask() {
   const name = document.getElementById("fName").value.trim();
+  const time = document.getElementById("fTime").value || null;
   if (!name) {
     alert("할 일을 입력해 주세요.");
     return;
@@ -845,25 +849,26 @@ async function addTask() {
     return;
   }
 
-const newTask = {
-  family_id: data.familyId,
-  child_id: data.selectedChildId,
-  category_id: selectedCategory.id,
-  category: categoryName,
-  name,
-  days,
-  reward_enabled: document.getElementById("fReward").checked,
-  reward_points: 0,
-  is_active: true,
-  sort_order: nextSortOrder
-};
+  const newTask = {
+    family_id: data.familyId,
+    child_id: data.selectedChildId,
+    category_id: selectedCategory.id,
+    category: categoryName,
+    name,
+    time,
+    days,
+    reward_enabled: document.getElementById("fReward").checked,
+    reward_points: 0,
+    is_active: true,
+    sort_order: nextSortOrder
+  };
 
   setStatus("일정을 저장하는 중...");
 
   const { data: inserted, error } = await supabaseClient
     .from("tasks")
     .insert(newTask)
-    .select("id, family_id, child_id, name, category, days, reward_enabled, reward_points, is_active, sort_order")
+    .select("id, family_id, child_id, name, category, time, days, reward_enabled, reward_points, is_active, sort_order")
     .single();
 
   if (error) {

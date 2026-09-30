@@ -7,8 +7,8 @@ const MORNING_ROUTINE = [
   { icon: "👕", name: "옷 입기" },
   { icon: "💧", name: "물통 챙기기" },
   { icon: "🎒", name: "준비물 챙기기" },
-  { icon: "💇", name: "머리 정리하기" },
-  { icon: "👟", name: "출발 준비" }
+  { icon: "💇🏻‍♀️", name: "머리 정리하기" },
+  { icon: "💡", name: "불 끄고 출발" }
 ];
 
 let morningDone = new Set();
@@ -213,4 +213,49 @@ async function toggleMorningRoutine(index) {
 
   morningSaving = false;
   renderMorning();
+
+  /* 마지막 루틴까지 모두 완료했을 때 응원 메시지 */
+  if (
+    !error &&
+    !wasDone &&
+    morningDone.size === MORNING_ROUTINE.length
+  ) {
+    showMorningCheer(selectedChild.name);
+  }
+}
+
+function showMorningCheer(childName) {
+  const messages = [
+    `${childName}♥️, 오늘도 멋지게 출발! 💛`,
+    `${childName}♥️, 준비 끝! 신나는 하루 보내자 ☀️`,
+    `${childName}♥️, 오늘도 씩씩하게 다녀와! 🚀`,
+    `${childName}♥️, 아침 미션 완벽해! 🌈`,
+    `${childName}♥️, 오늘 하루도 파이팅! 💪`
+  ];
+
+  const message =
+    messages[Math.floor(Math.random() * messages.length)];
+
+  const popup = document.createElement("div");
+  popup.className = "morning-cheer-overlay";
+
+  popup.innerHTML = `
+    <div class="morning-cheer-popup">
+      <div class="morning-cheer-icon">🌟</div>
+
+      <h2>아침 준비 완료!</h2>
+
+      <p>${esc(message)}</p>
+
+      <button
+        type="button"
+        class="btn primary morning-cheer-btn"
+        onclick="this.closest('.morning-cheer-overlay').remove()"
+      >
+        좋아!
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
 }
