@@ -1543,9 +1543,9 @@ body.morning-mode {
   height: 100dvh;
 }
 
-body.morning-mode #morningView {
-  height: 100%;
-  overflow: hidden;
+body.morning-mode {
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ========================================

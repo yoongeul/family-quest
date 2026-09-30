@@ -78,7 +78,7 @@ function renderMorning() {
         <div class="morning-title">
           <div>
             <span>🌞</span>
-            <strong>${esc(selectedChild.name || "")}의 아침 준비</strong>
+            <strong> 하루를 시작해 봐 </strong>
           </div>
         </div>
       </div>
@@ -95,8 +95,8 @@ function renderMorning() {
 
       <div class="morning-title">
         <div>
-          <span>🌞</span>
-          <strong>${esc(selectedChild.name || "")}의 아침 준비</strong>
+          <span>😊</span>
+          <strong> 행복한 하루를 시작해 봐 </strong>
         </div>
 
         <span class="morning-count">

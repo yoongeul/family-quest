@@ -13,7 +13,7 @@ function toggleManageCategory(categoryId) {
 let bookSectionCollapsed = true;
 let editingBookId = null;
 let noteSectionCollapsed = true;
-let pendingAdminView = null;
+
 
 function toggleBookSection() {
   bookSectionCollapsed = !bookSectionCollapsed;
@@ -1059,4 +1059,3 @@ async function moveCategory(categoryId, direction) {
 
   render();
 }
-
