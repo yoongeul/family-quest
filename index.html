@@ -514,7 +514,20 @@ function render() {
 
 document.querySelectorAll("nav button").forEach(button => {
   button.onclick = () => {
-    currentView = button.dataset.view;
+    const nextView = button.dataset.view;
+
+    if (nextView === "manage") {
+      const password = prompt("관리자 비밀번호를 입력하세요.");
+
+      if (password !== "1234") {
+        if (password !== null) {
+          alert("비밀번호가 맞지 않습니다.");
+        }
+        return;
+      }
+    }
+
+    currentView = nextView;
     saveUiState();
     render();
   };
@@ -603,6 +616,7 @@ startApp();
 
 window.addEventListener("load", updateStickyHeights);
 window.addEventListener("resize", updateStickyHeights);
+
 
 </script>
 </body>

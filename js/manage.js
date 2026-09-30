@@ -12,9 +12,16 @@ function toggleManageCategory(categoryId) {
 
 let bookSectionCollapsed = true;
 let editingBookId = null;
+let noteSectionCollapsed = true;
+let pendingAdminView = null;
 
 function toggleBookSection() {
   bookSectionCollapsed = !bookSectionCollapsed;
+  renderManage();
+}
+
+function toggleNoteSection() {
+  noteSectionCollapsed = !noteSectionCollapsed;
   renderManage();
 }
 
@@ -41,6 +48,126 @@ function renderManage() {
     );
 
   root.innerHTML = `
+    <!-- 메모 · 공지 관리 -->
+    <div class="card manage-note-card">
+      <button
+        type="button"
+        class="manage-category-toggle"
+        onclick="toggleNoteSection()"
+        aria-expanded="${!noteSectionCollapsed}"
+      >
+        <span class="manage-category-title">
+          <b>📝 메모 · 공지 관리</b>
+        </span>
+
+        <span class="manage-category-arrow">
+          ${noteSectionCollapsed ? "▶" : "▼"}
+        </span>
+      </button>
+
+      <div
+        class="note-section-body"
+        style="${noteSectionCollapsed ? "display:none;" : ""}"
+      >
+        <div id="manageNotes"></div>
+      </div>
+    </div>
+
+    <!-- 새 반복 일정 추가 -->
+        <div class="card manage-add-card">
+          <button
+            type="button"
+            class="manage-category-toggle"
+            onclick="toggleScheduleAddSection()"
+            aria-expanded="${!scheduleAddSectionCollapsed}"
+          >
+            <span class="manage-category-title">
+              <b>📆 새 반복 일정 추가</b>
+            </span>
+
+            <span class="manage-category-arrow">
+              ${scheduleAddSectionCollapsed ? "▶" : "▼"}
+            </span>
+          </button>
+
+          <div
+            class="formgrid"
+            style="${scheduleAddSectionCollapsed ? "display:none;" : ""}"
+          >
+            <div>
+              <label>분류</label>
+
+              <select id="fCat">
+                ${categories.map(category => `
+                  <option value="${esc(category.name)}">
+                    ${esc(category.name)}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div>
+              <label>할 일</label>
+
+              <input
+                id="fName"
+                placeholder="예: 원리셈 2장"
+              />
+            </div>
+
+            <div>
+              <label>시간 <span class="muted">(선택)</span></label>
+
+              <input
+                type="time"
+                id="fTime"
+              />
+            </div>
+
+            <div class="full">
+              <label>반복 요일</label>
+
+              <div class="days" id="dayPick">
+                ${[1, 2, 3, 4, 5, 6, 0].map(day => `
+                  <button
+                    type="button"
+                    class="daybtn ${
+                      WEEKDAYS.includes(day)
+                        ? "active"
+                        : ""
+                    }"
+                    data-day="${day}"
+                  >
+                    ${DAYS[day]}
+                  </button>
+                `).join("")}
+              </div>
+            </div>
+
+            <div class="full">
+              <label>
+                <input
+                  type="checkbox"
+                  id="fReward"
+                  style="width:auto"
+                >
+                주간 용돈 지급 조건에 포함
+              </label>
+            </div>
+
+            <div class="full">
+              <button
+                type="button"
+                class="btn primary"
+                onclick="addTask()"
+              >
+                일정 추가
+              </button>
+            </div>
+          </div>
+        </div>
+
+
     <!-- 교재 관리 -->
     <div class="card manage-book-card">
       <button
@@ -212,101 +339,6 @@ function renderManage() {
         </div>
       </div>
   
-
-    <!-- 새 반복 일정 추가 -->
-    <div class="card manage-add-card">
-      <button
-        type="button"
-        class="manage-category-toggle"
-        onclick="toggleScheduleAddSection()"
-        aria-expanded="${!scheduleAddSectionCollapsed}"
-      >
-        <span class="manage-category-title">
-          <b>📆 새 반복 일정 추가</b>
-        </span>
-
-        <span class="manage-category-arrow">
-          ${scheduleAddSectionCollapsed ? "▶" : "▼"}
-        </span>
-      </button>
-
-      <div
-        class="formgrid"
-        style="${scheduleAddSectionCollapsed ? "display:none;" : ""}"
-      >
-        <div>
-          <label>분류</label>
-
-          <select id="fCat">
-            ${categories.map(category => `
-              <option value="${esc(category.name)}">
-                ${esc(category.name)}
-              </option>
-            `).join("")}
-          </select>
-        </div>
-
-        <div>
-          <label>할 일</label>
-
-          <input
-            id="fName"
-            placeholder="예: 원리셈 2장"
-          />
-        </div>
-
-        <div>
-          <label>시간 <span class="muted">(선택)</span></label>
-
-          <input
-            type="time"
-            id="fTime"
-          />
-        </div>
-
-        <div class="full">
-          <label>반복 요일</label>
-
-          <div class="days" id="dayPick">
-            ${[1, 2, 3, 4, 5, 6, 0].map(day => `
-              <button
-                type="button"
-                class="daybtn ${
-                  WEEKDAYS.includes(day)
-                    ? "active"
-                    : ""
-                }"
-                data-day="${day}"
-              >
-                ${DAYS[day]}
-              </button>
-            `).join("")}
-          </div>
-        </div>
-
-        <div class="full">
-          <label>
-            <input
-              type="checkbox"
-              id="fReward"
-              style="width:auto"
-            >
-            주간 용돈 지급 조건에 포함
-          </label>
-        </div>
-
-        <div class="full">
-          <button
-            type="button"
-            class="btn primary"
-            onclick="addTask()"
-          >
-            일정 추가
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- 카테고리별 등록 일정 -->
     <div class="card manage-task-card">
       <div class="section-title">
@@ -482,6 +514,10 @@ function renderManage() {
       };
     });
     renderBookList(); 
+
+  if (!noteSectionCollapsed) {
+  renderManageNotes();
+}
 }
 
 async function renderBookList() {
@@ -1023,3 +1059,4 @@ async function moveCategory(categoryId, direction) {
 
   render();
 }
+

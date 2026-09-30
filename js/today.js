@@ -429,6 +429,232 @@ async function renderTodayNotes(dateStr, childId) {
   updateStickyHeights();
 }
 
+async function renderManageNotes() {
+  const root = document.getElementById("manageNotes");
+
+  if (!root) return;
+
+  const childId = data.selectedChildId;
+  const dateStr = ymd(getSelectedDate());
+
+  if (!childId) {
+    root.innerHTML = `
+      <div class="empty">
+        아이를 먼저 선택해 주세요.
+      </div>
+    `;
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="muted">
+      메모를 불러오는 중...
+    </div>
+  `;
+
+  const { data: memoNotes, error } = await supabaseClient
+    .from("notes")
+    .select("id, content, note_type, note_date, created_at")
+    .eq("family_id", data.familyId)
+    .eq("child_id", childId)
+    .eq("note_type", "memo")
+    .eq("note_date", dateStr)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("관리 메모 불러오기 실패:", error);
+
+    root.innerHTML = `
+      <div class="empty">
+        메모를 불러오지 못했습니다.
+      </div>
+    `;
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="manage-note-list">
+      ${
+        memoNotes.length
+          ? memoNotes.map(note => `
+              <div class="manager-item">
+                <div class="manager-task-info">
+                  <strong>${esc(note.content)}</strong>
+
+                  <div class="muted">
+                    ${note.note_date}
+                  </div>
+                </div>
+
+                <div class="toolbar">
+                  <button
+                    type="button"
+                    class="btn"
+                    onclick="startEditManageNote(
+                      '${note.id}',
+                      '${encodeURIComponent(note.content)}',
+                    )"
+                  >
+                    수정
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn danger"
+                    onclick="deleteNote('${note.id}')"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            `).join("")
+          : `
+            <div class="empty">
+              등록된 메모가 없어요.
+            </div>
+          `
+      }
+
+      <div style="margin-top:12px;">
+        <button
+          type="button"
+          class="btn primary"
+          onclick="openManageNoteEditor('memo')"
+        >
+          + 새 메모
+        </button>
+      </div>
+
+      ${renderManageNoteEditor()}
+    </div>
+  `;
+}
+
+function startEditManageNote(noteId, encodedContent) {
+  editingNoteId = noteId;
+
+  const editor = document.getElementById("manageNoteEditor");
+  const input = document.getElementById("manageNoteInput");
+
+  if (!editor || !input) return;
+
+  input.value = decodeURIComponent(encodedContent);
+  editor.style.display = "block";
+  input.focus();
+}
+
+function renderManageNoteEditor() {
+  return `
+    <div id="manageNoteEditor" style="display:none; margin-top:12px;">
+      <textarea
+        id="manageNoteInput"
+        rows="3"
+        placeholder="메모를 입력하세요"
+        style="width:100%; resize:vertical;"
+      ></textarea>
+
+      <div
+        class="toprow"
+        style="justify-content:flex-end; margin-top:8px;"
+      >
+        <button
+          type="button"
+          class="btn"
+          onclick="cancelManageNoteEdit()"
+        >
+          취소
+        </button>
+
+        <button
+          type="button"
+          class="btn primary"
+          onclick="saveManageNote()"
+        >
+          저장
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function openManageNoteEditor() {
+  editingNoteId = null;
+
+  const editor = document.getElementById("manageNoteEditor");
+  const input = document.getElementById("manageNoteInput");
+
+  if (!editor || !input) return;
+
+  input.value = "";
+  editor.style.display = "block";
+  input.focus();
+}
+
+function cancelManageNoteEdit() {
+  editingNoteId = null;
+
+  const editor = document.getElementById("manageNoteEditor");
+  const input = document.getElementById("manageNoteInput");
+
+  if (input) input.value = "";
+  if (editor) editor.style.display = "none";
+}
+
+async function saveManageNote() {
+  const input = document.getElementById("manageNoteInput");
+  const content = input?.value.trim();
+
+  if (!content) {
+    alert("내용을 입력해 주세요.");
+    return;
+  }
+
+  const dateStr = ymd(getSelectedDate());
+  const childId = data.selectedChildId;
+
+  const noteData = {
+    content,
+    note_type: "memo",
+    note_date: dateStr,
+    child_id: childId
+  };
+
+  let error;
+
+  if (editingNoteId) {
+    const result = await supabaseClient
+      .from("notes")
+      .update({
+        ...noteData,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", editingNoteId)
+      .eq("family_id", data.familyId);
+
+    error = result.error;
+  } else {
+    const result = await supabaseClient
+      .from("notes")
+      .insert({
+        family_id: data.familyId,
+        ...noteData
+      });
+
+    error = result.error;
+  }
+
+  if (error) {
+    console.error("메모 저장 실패:", error);
+    alert(error.message);
+    return;
+  }
+
+  editingNoteId = null;
+
+  await renderManageNotes();
+  await renderTodayNotes(dateStr, childId);
+}
+
 function renderNoteEditor() {
   return `
     <div id="noteEditor" style="display:none; margin-top:8px;">
@@ -581,6 +807,8 @@ async function saveNote() {
     selectedDateStr,
     data.selectedChildId
   );
+
+  await renderManageNotes();
 }
 
 async function deleteNote(noteId) {
@@ -608,4 +836,6 @@ async function deleteNote(noteId) {
     ymd(getSelectedDate()),
     data.selectedChildId
   );
+
+  await renderManageNotes();
 }
