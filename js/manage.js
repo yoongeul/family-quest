@@ -97,12 +97,20 @@ function renderManage() {
             <div>
               <label>분류</label>
 
-              <select id="fCat">
+              <select id="fCat" onchange="updateTaskBookField()">
                 ${categories.map(category => `
                   <option value="${esc(category.name)}">
                     ${esc(category.name)}
                   </option>
                 `).join("")}
+              </select>
+            </div>
+
+            <div id="taskBookField" style="display:none;">
+              <label>교재</label>
+
+              <select id="fBook">
+                <option value="">교재 선택</option>
               </select>
             </div>
 
@@ -520,6 +528,48 @@ function renderManage() {
 }
 }
 
+function updateTaskBookField() {
+  const category = document.getElementById("fCat")?.value;
+  const field = document.getElementById("taskBookField");
+  const select = document.getElementById("fBook");
+  const nameInput = document.getElementById("fName");
+
+  if (!field || !select) return;
+
+  if (category !== "공부") {
+    field.style.display = "none";
+    select.innerHTML = `<option value="">교재 선택</option>`;
+    return;
+  }
+
+  const books = (data.books || []).filter(
+    book =>
+      book.child_id === data.selectedChildId &&
+      book.status === "active"
+  );
+
+  select.innerHTML = `
+    <option value="">교재 선택</option>
+    ${books.map(book => `
+      <option value="${book.id}">
+        ${esc(book.subject)} · ${esc(book.title)}
+      </option>
+    `).join("")}
+  `;
+
+  field.style.display = "block";
+
+  select.onchange = () => {
+    const book = books.find(
+      book => book.id === select.value
+    );
+
+    if (book && nameInput) {
+      nameInput.value = book.title;
+    }
+  };
+}
+
 async function renderBookList() {
   const root = document.getElementById("bookList");
   if (!root) return;
@@ -866,6 +916,16 @@ async function addTask() {
 
   const categoryName = document.getElementById("fCat").value;
 
+  const bookId =
+  categoryName === "공부"
+    ? document.getElementById("fBook")?.value || null
+    : null;
+
+  if (categoryName === "공부" && !bookId) {
+    alert("교재를 선택해 주세요.");
+    return;
+  }
+
   const { data: selectedCategory, error: categoryError } =
    await supabaseClient
     .from("categories")
@@ -890,6 +950,7 @@ async function addTask() {
     child_id: data.selectedChildId,
     category_id: selectedCategory.id,
     category: categoryName,
+    book_id: bookId,
     name,
     time,
     days,
@@ -904,7 +965,7 @@ async function addTask() {
   const { data: inserted, error } = await supabaseClient
     .from("tasks")
     .insert(newTask)
-    .select("id, family_id, child_id, name, category, time, days, reward_enabled, reward_points, is_active, sort_order")
+    .select("id, family_id, child_id, name, category, book_id,time, days, reward_enabled, reward_points, is_active, sort_order")
     .single();
 
   if (error) {
