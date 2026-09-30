@@ -37,12 +37,66 @@ function renderToday() {
   root.innerHTML = `
     <div id="todayHero"></div>
     <div id="todayNotes"></div>
+    <div id="tomorrowSchedule"></div>
     <div id="todayTasks"></div>
   `;
 
   renderTodayTasks();
   renderTodayNotes(dateStr, data.selectedChildId);
+  renderTomorrowSchedule();
   updateStickyHeights();
+}
+
+function renderTomorrowSchedule() {
+  const root = document.getElementById("tomorrowSchedule");
+  if (!root) return;
+
+  const tomorrow = new Date(getSelectedDate());
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const list = tasksFor(data.selectedChildId, tomorrow);
+
+  // 내일 일정에서는 학교 / 학원만 보여주기
+  const scheduleList = list.filter(task =>
+    task.category === "학교" ||
+    task.category === "학원"
+  );
+
+  const dateLabel =
+    `${tomorrow.getMonth() + 1}월 ${tomorrow.getDate()}일 (${DAYS[tomorrow.getDay()]})`;
+
+  root.innerHTML = `
+    <div class="card tomorrow-card">
+      <div class="tomorrow-header">
+        <strong>📅 내일 일정</strong>
+        <span class="muted">${dateLabel}</span>
+      </div>
+
+      ${
+        scheduleList.length
+          ? `
+            <div class="tomorrow-grid">
+              ${scheduleList.map(task => `
+                <div class="tomorrow-item">
+                  <strong>${esc(task.name)}</strong>
+
+                  ${
+                    task.time
+                      ? `<span>${esc(task.time?.slice(0, 5))}</span>`
+                      : ""
+                  }
+                </div>
+              `).join("")}
+            </div>
+          `
+          : `
+            <div class="muted tomorrow-empty">
+              내일은 등록된 일정이 없어요 🌿
+            </div>
+          `
+      }
+    </div>
+  `;
 }
 
 function renderTodayTasks() {
@@ -102,8 +156,8 @@ function renderTodayTasks() {
         .map(task => {
           const done = isDone(task.id, dateStr);
 
-          // 학원 → 버튼형 일정
-          if (category === "학원") {
+          // 학원 / 학교 → 버튼형 일정
+          if (category === "학원" || category === "학교일정") {
             return `
               <button
                 type="button"
@@ -116,7 +170,7 @@ function renderTodayTasks() {
                 </span>
 
                 <span class="academy-task-time">
-                  ${task.time ? esc(task.time) : ""}
+                  ${task.time ? esc(task.time?.slice(0, 5)) : ""}
                 </span>
               </button>
             `;
@@ -236,8 +290,7 @@ function renderTodayTasks() {
 
           <div class="
             category-content
-            ${category === "학원" ? "academy-grid" : ""}
-            ${isCollapsed ? "collapsed" : ""}
+            ${category === "학원" || category === "학교일정" ? "academy-grid" : ""}            ${isCollapsed ? "collapsed" : ""}
           ">
             ${rows}
           </div>
@@ -271,7 +324,7 @@ function renderNoteBox(type, title, notes) {
               class="info-icon-btn"
               onclick="startEditNote(
                 '${note.id}',
-                '${encodeURIComponent(note.content)}'
+                '${encodeURIComponent(note.content)}',
                 '${type}'
               )"
               aria-label="${title} 수정"
@@ -333,48 +386,32 @@ async function renderTodayNotes(dateStr, childId) {
     root.innerHTML = `
       <div class="card note-card">
         <div class="section-title">
-          <h2>📣 오늘 알림</h2>
+          <h2>📝 메모</h2>
         </div>
 
         <div class="muted">
-         알림을 불러오는 중...
+          메모를 불러오는 중...
         </div>
       </div>
     `;
   }
 
-  const [
-  { data: noticeNotes, error: noticeError },
-  { data: memoNotes, error: memoError }
-  ] = await Promise.all([
-    supabaseClient
-      .from("notes")
-      .select("id, content, note_type, note_date, created_at")
-      .eq("family_id", data.familyId)
-      .eq("note_type", "notice")
-      .eq("note_date", dateStr)
-      .is("child_id", null)
-      .order("created_at", { ascending: true }),
-
-    supabaseClient
-      .from("notes")
-      .select("id, content, note_type, note_date, created_at")
-      .eq("family_id", data.familyId)
-      .eq("child_id", childId)
-      .eq("note_type", "memo")
-      .eq("note_date", dateStr)
-      .order("created_at", { ascending: true })
-  ]);
-
-  const error = noticeError || memoError;
+  const { data: memoNotes, error } = await supabaseClient
+    .from("notes")
+    .select("id, content, note_type, note_date, created_at")
+    .eq("family_id", data.familyId)
+    .eq("child_id", childId)
+    .eq("note_type", "memo")
+    .eq("note_date", dateStr)
+    .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("알림 불러오기 실패:", error);
+    console.error("메모 불러오기 실패:", error);
 
     root.innerHTML = `
       <div class="card note-card">
         <div class="muted">
-          알림을 불러오지 못했습니다.
+          메모를 불러오지 못했습니다.
         </div>
       </div>
     `;
@@ -383,36 +420,11 @@ async function renderTodayNotes(dateStr, childId) {
   }
 
   root.innerHTML = `
-  <div class="today-info-bar">
-    ${renderNoteBox("notice", "📢 공지", noticeNotes)}
-    ${renderNoteBox("memo", "📝 메모", memoNotes)}
-    ${renderNoteEditor()}
-  </div>
-`;
-const noteTypeRadios =
-  document.querySelectorAll('input[name="noteType"]');
-
-const noticeDateWrap =
-  document.getElementById("noticeDateWrap");
-
-const noticeDateInput =
-  document.getElementById("noticeDate");
-
-noteTypeRadios.forEach(radio => {
-  radio.addEventListener("change", () => {
-    const selectedType =
-      document.querySelector('input[name="noteType"]:checked')?.value;
-
-    const isNotice = selectedType === "notice";
-
-    noticeDateWrap.style.display =
-      isNotice ? "block" : "none";
-
-    if (isNotice && !noticeDateInput.value) {
-      noticeDateInput.value = ymd(getSelectedDate());
-    }
-  });
-});
+    <div class="today-info-bar">
+      ${renderNoteBox("memo", "📝 메모", memoNotes)}
+      ${renderNoteEditor()}
+    </div>
+  `;
 
   updateStickyHeights();
 }
@@ -420,39 +432,10 @@ noteTypeRadios.forEach(radio => {
 function renderNoteEditor() {
   return `
     <div id="noteEditor" style="display:none; margin-top:8px;">
-      <div class="note-type-picker">
-        <label>
-          <input
-            type="radio"
-            name="noteType"
-            value="memo"
-            checked
-          >
-          📝 메모
-        </label>
-
-        <label>
-          <input
-            type="radio"
-            name="noteType"
-            value="notice"
-          >
-          📢 공지
-        </label>
-      </div>
-
-      <div id="noticeDateWrap" style="display:none; margin-top:8px;">
-        <label for="noticeDate">공지 날짜</label>
-        <input
-          type="date"
-          id="noticeDate"
-        >
-      </div>
-
       <textarea
         id="noteInput"
         rows="2"
-        placeholder="내용을 입력하세요"
+        placeholder="메모를 입력하세요"
         style="width:100%; resize:vertical;"
       ></textarea>
 
@@ -460,11 +443,19 @@ function renderNoteEditor() {
         class="toprow"
         style="justify-content:flex-end; margin-top:8px;"
       >
-        <button class="btn" onclick="cancelNoteEdit()">
+        <button
+          type="button"
+          class="btn"
+          onclick="cancelNoteEdit()"
+        >
           취소
         </button>
 
-        <button class="btn" onclick="saveNote()">
+        <button
+          type="button"
+          class="btn"
+          onclick="saveNote()"
+        >
           저장
         </button>
       </div>
@@ -541,35 +532,16 @@ async function saveNote() {
   const selectedDateStr = ymd(getSelectedDate());
   const childId = data.selectedChildId;
 
-  const noteType =
-    document.querySelector('input[name="noteType"]:checked')?.value || "memo";
-
-  // 공지는 지정 날짜, 메모는 현재 보고 있는 날짜
-  const noticeDateInput = document.getElementById("noticeDate");
-
-  const noteDate =
-    noteType === "notice"
-      ? noticeDateInput?.value
-      : selectedDateStr;
-
-  if (noteType === "notice" && !noteDate) {
-    alert("공지 날짜를 선택해 주세요.");
-    return;
-  }
-
-  // 메모일 때만 아이 선택이 필요함
-  if (noteType === "memo" && !childId) {
+  if (!childId) {
     alert("아이를 먼저 선택해 주세요.");
     return;
   }
 
   const noteData = {
     content,
-    note_type: noteType,
-    note_date: noteDate,
-
-    // 공지는 가족 공통, 메모는 현재 아이
-    child_id: noteType === "notice" ? null : childId
+    note_type: "memo",
+    note_date: selectedDateStr,
+    child_id: childId
   };
 
   let error;
@@ -597,7 +569,7 @@ async function saveNote() {
   }
 
   if (error) {
-    console.error("공지/메모 저장 실패:", error);
+    console.error("메모 저장 실패:", error);
     alert(error.message);
     return;
   }

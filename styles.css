@@ -1631,3 +1631,62 @@ body.morning-mode #morningView {
   font-size: 16px;
   font-weight: 700;
 }
+
+/* 내일 일정 */
+.tomorrow-card {
+  padding: 14px 16px;
+}
+
+.tomorrow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.tomorrow-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.tomorrow-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.tomorrow-item {
+  flex: 0 0 auto;
+}
+
+.tomorrow-item {
+  min-height: 0;
+  padding: 7px 11px;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+
+  border: none;
+  border-radius: 10px;
+  background: #f5f3ed;
+
+  white-space: nowrap;
+}
+
+.tomorrow-item strong {
+  font-size: 14px;
+}
+
+.tomorrow-item span {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
