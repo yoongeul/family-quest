@@ -781,10 +781,7 @@ async function addBook() {
         ? targetDays
         : null,
 
-    days_per_week:
-      progressType === "week_day"
-        ? daysPerWeek
-        : null
+    days_per_week: daysPerWeek
   };
 
   setStatus(
